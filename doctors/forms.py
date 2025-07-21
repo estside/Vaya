@@ -1,7 +1,7 @@
 # healthcare_app_motihari/doctors/forms.py
 
 from django import forms
-from .models import Doctor, Specialty
+from .models import Doctor, Specialty, Appointment, Report 
 from users.models import CustomUser # Import CustomUser for potential user creation
 import datetime
 
@@ -204,4 +204,20 @@ class AppointmentBookingForm(forms.ModelForm):
         # You'd typically check against doctor's available slots here, but for MVP, we'll keep it simple.
 
         return cleaned_data
+    # --- NEW REPORT UPLOAD FORM STARTS HERE ---
+class ReportUploadForm(forms.ModelForm):
+    class Meta:
+        model = Report
+        fields = ['title', 'description', 'report_file', 'report_date']
+        labels = {
+            'title': 'Report Title',
+            'description': 'Description (Optional)',
+            'report_file': 'Upload File (PDF, Image, etc.)',
+            'report_date': 'Date of Report (e.g., Lab Test Date)'
+        }
+        widgets = {
+            'report_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Brief description or notes about the report.'}),
+        }
+# --- NEW REPORT UPLOAD FORM ENDS HERE ---
 

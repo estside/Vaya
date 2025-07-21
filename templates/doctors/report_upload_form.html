@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - Vaya{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Main Content - Form Section */
+    .upload-section {
+        flex-grow: 1;
+        padding: 60px 0;
+        background-color: #e6f6f2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .upload-card {
+        background-color: #fff;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        width: 100%;
+        max-width: 550px;
+        text-align: center;
+    }
+    .upload-card h2 {
+        font-size: 2.2em;
+        margin-bottom: 30px;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .upload-section {
+            padding: 40px 0;
+        }
+        .upload-card {
+            padding: 25px;
+            margin: 0 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <section class="upload-section">
+        <div class="container">
+            <div class="upload-card">
+                <h2>{{ title }}</h2>
+                {% if patient %}<p>For Patient: {{ patient.username }}</p>{% endif %}
+
+                <form method="post" enctype="multipart/form-data"> {# enctype is crucial for file uploads #}
+                    {% csrf_token %}
+
+                    {% for field in form %}
+                        <div class="form-group">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <small class="help-text">{{ field.help_text }}</small>
+                            {% endif %}
+                            {% for error in field.errors %}
+                                <p class="errorlist">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+
+                    {% if form.non_field_errors %}
+                        <ul class="errorlist">
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+
+                    <button type="submit" class="btn-primary">Upload Report</button>
+                </form>
+
+                <div class="help-text">
+                    {% if request.user.is_authenticated and not request.user.doctor_login_profile %}
+                        <p><a href="{% url 'patient_dashboard' %}">Back to Dashboard</a></p>
+                    {% elif request.user.is_authenticated and user.doctor_login_profile.is_approved %}
+                        <p><a href="{% url 'doctor_dashboard' %}">Back to Dashboard</a></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

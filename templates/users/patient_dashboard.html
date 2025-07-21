@@ -131,6 +131,63 @@
             align-items: flex-start;
         }
     }
+    .report-list {
+        list-style: none;
+        padding: 0;
+    }
+    .report-item {
+        background-color: #f9f9f9;
+        border: 1px solid #eee;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap; /* Allow wrapping on small screens */
+    }
+    .report-details {
+        flex-grow: 1;
+    }
+    .report-details p {
+        margin: 0;
+    }
+    .report-actions {
+        margin-left: 15px;
+        white-space: nowrap; /* Prevent buttons from wrapping */
+    }
+    .report-actions a {
+        padding: 8px 15px;
+        font-size: 0.9em;
+        margin-left: 5px;
+        text-decoration: none;
+        border-radius: 5px;
+    }
+    .report-actions .btn-download {
+        background-color: #007bff;
+        color: white;
+    }
+    .report-actions .btn-download:hover {
+        background-color: #0056b3;
+    }
+    /* Responsive adjustment for report items */
+    @media (max-width: 768px) {
+        .report-item {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .report-actions {
+            margin-top: 10px;
+            margin-left: 0;
+            width: 100%;
+            text-align: center;
+        }
+        .report-actions a {
+            margin-left: 0;
+            margin-bottom: 5px;
+            width: calc(100% - 10px); /* Adjust for padding */
+            display: block;
+        }}
 </style>
 {% endblock %}
 
@@ -156,8 +213,32 @@
                     <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
                     <h2>My Reports</h2>
                     <p style="font-size: 0.9em; color: #666;">View and manage your medical reports.</p>
-                    
-                    <!-- Add a list of reports here later -->
+                    <a href="{% url 'patient_upload_report' %}" class="btn-primary">Upload New Report</a>
+                    <!-- Display Patient Reports Here -->
+                    {% if patient_reports %}
+                        <ul class="report-list" style="margin-top: 20px;">
+                            {% for report in patient_reports %}
+                                <li class="report-item">
+                                    <div class="report-details">
+                                        <p><strong>Title:</strong> {{ report.title }}</p>
+                                        <p><strong>Date:</strong> {{ report.report_date|default:"N/A" }}</p>
+                                        <p><strong>Uploaded:</strong> {{ report.uploaded_at|date:"F d, Y H:i" }}</p>
+                                        {% if report.description %}<p><strong>Description:</strong> {{ report.description }}</p>{% endif %}
+                                        {% if report.doctor %}<p><strong>Uploaded by:</strong> Dr. {{ report.doctor.full_name }}</p>{% endif %}
+                                    </div>
+                                    <div class="report-actions">
+                                        {% if report.report_file %}
+                                            <a href="{{ report.report_file.url }}" target="_blank" class="btn-download btn-primary">Download</a>
+                                        {% else %}
+                                            <span style="color: #888; font-size: 0.9em;">No file</span>
+                                        {% endif %}
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p style="text-align: center; color: #777; margin-top: 20px;">No reports uploaded yet.</p>
+                    {% endif %}
                 </div>
 
                 <div class="main-content">

@@ -1,7 +1,7 @@
 # healthcare_app_motihari/doctors/views.py
 
 from django.shortcuts import render
-from .models import Doctor, Specialty
+from .models import Doctor, Specialty,models
 from django.shortcuts import render, redirect
 
 def doctor_list(request):
@@ -234,3 +234,197 @@ def cancel_appointment(request, appointment_id):
         return redirect('doctor_dashboard')
     else:
         raise Http404("Only POST requests are allowed for this action.")
+# healthcare_app_motihari/doctors/views.py
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
+from .models import Doctor, Specialty, Appointment, Report # Import Report
+from .forms import ClinicRegistrationForm, PatientSignUpForm, AppointmentBookingForm, ReportUploadForm # Import ReportUploadForm
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import Http404
+from users.models import CustomUser # Import CustomUser for doctor_upload_report
+
+# ... (existing views: doctor_list, doctor_detail, register_clinic, clinic_registration_success,
+#      doctor_dashboard, book_appointment, appointment_success, confirm_appointment, cancel_appointment) ...
+
+@login_required
+def patient_upload_report(request):
+    """
+    Allows a logged-in patient to upload their own medical report.
+    """
+    # Ensure this user is not a doctor trying to upload patient reports here
+    try:
+        if request.user.doctor_login_profile:
+            messages.error(request, "Doctors upload reports via specific patient/appointment context.")
+            return redirect('doctor_dashboard')
+    except Doctor.DoesNotExist:
+        pass # This user is a patient, proceed.
+
+    if request.method == 'POST':
+        form = ReportUploadForm(request.POST, request.FILES) # request.FILES is crucial for file uploads
+        if form.is_valid():
+            report = form.save(commit=False)
+            report.patient = request.user # Link report to the logged-in patient
+            # doctor field will be null if patient uploads it themselves
+            report.save()
+            messages.success(request, 'Your report has been uploaded successfully!')
+            return redirect('patient_dashboard') # Redirect to patient dashboard
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = ReportUploadForm()
+
+    context = {
+        'form': form,
+        'title': 'Upload Your Medical Report'
+    }
+    return render(request, 'doctors/report_upload_form.html', context)
+
+
+@login_required
+def doctor_upload_report(request, patient_id):
+    """
+    Allows a logged-in doctor to upload a report for a specific patient.
+    """
+    # Security check: Ensure the logged-in user is a doctor
+    try:
+        current_doctor = request.user.doctor_login_profile
+        if not current_doctor.is_approved:
+            messages.error(request, "Your doctor profile is not approved.")
+            return redirect('doctor_dashboard')
+    except Doctor.DoesNotExist:
+        messages.error(request, "You must be a registered and approved doctor to perform this action.")
+        return redirect('doctor_dashboard')
+
+    # Get the patient for whom the report is being uploaded
+    patient = get_object_or_404(CustomUser, id=patient_id)
+
+    if request.method == 'POST':
+        form = ReportUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            report = form.save(commit=False)
+            report.patient = patient # Link report to the specified patient
+            report.doctor = current_doctor # Link report to the logged-in doctor
+            report.save()
+            messages.success(request, f'Report for {patient.username} uploaded successfully by Dr. {current_doctor.full_name}!')
+            # Redirect back to doctor dashboard or a patient's detail view for the doctor
+            return redirect('doctor_dashboard') # For simplicity, redirect to doctor dashboard
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = ReportUploadForm()
+
+    context = {
+        'form': form,
+        'patient': patient,
+        'title': f'Upload Report for {patient.username}'
+    }
+    return render(request, 'doctors/report_upload_form.html', context) # Reusing the same template
+# healthcare_app_motihari/users/views.py
+
+from django.shortcuts import render, redirect
+from django.urls import reverse
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from doctors.models import Doctor, Appointment, Report # Import Report model
+from .forms import PatientSignUpForm
+
+# ... (existing custom_login_redirect and patient_signup views) ...
+
+@login_required
+def patient_dashboard(request):
+    """
+    Displays the dashboard for a logged-in patient.
+    Shows their profile and a list of their appointments and reports.
+    """
+    user = request.user
+
+    # Check if the logged-in user is actually a doctor.
+    try:
+        doctor_profile = Doctor.objects.get(user=user)
+        if doctor_profile.is_approved:
+            return redirect('doctor_dashboard')
+        else:
+            messages.warning(request, "Your doctor profile is pending approval. Please wait for an administrator to approve it.")
+            return redirect('landing_page')
+    except Doctor.DoesNotExist:
+        pass # This user is not a doctor, proceed as patient
+
+    # Fetch appointments for this patient
+    upcoming_appointments = Appointment.objects.filter(
+        patient=user,
+        status__in=['pending', 'confirmed']
+    ).order_by('appointment_date', 'appointment_time')
+
+    past_appointments = Appointment.objects.filter(
+        patient=user,
+        status__in=['completed', 'cancelled']
+    ).order_by('-appointment_date', '-appointment_time')
+
+    # --- NEW: Fetch reports for this patient ---
+    patient_reports = Report.objects.filter(patient=user).order_by('-uploaded_at')
+    # -------------------------------------------
+
+    context = {
+        'user': user,
+        'upcoming_appointments': upcoming_appointments,
+        'past_appointments': past_appointments,
+        'patient_reports': patient_reports, # <--- Add reports to context
+    }
+    return render(request, 'users/patient_dashboard.html', context)
+# healthcare_app_motihari/doctors/views.py
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
+from .models import Doctor, Specialty, Appointment, Report # Ensure Report is imported
+from .forms import ClinicRegistrationForm, PatientSignUpForm, AppointmentBookingForm, ReportUploadForm
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import Http404
+from users.models import CustomUser
+
+# ... (existing views) ...
+
+@login_required
+def doctor_dashboard(request):
+    """
+    Displays the dashboard for a logged-in doctor.
+    Shows their profile and a list of their appointments and relevant reports.
+    """
+    try:
+        doctor = request.user.doctor_login_profile
+        if not doctor.is_approved:
+            messages.warning(request, "Your doctor profile is pending approval. Please wait for an administrator to approve it.")
+            return redirect('landing_page')
+    except Doctor.DoesNotExist:
+        messages.error(request, "You are not registered as a doctor, or your profile is incomplete. Please register your clinic.")
+        return redirect('register_clinic')
+
+    upcoming_appointments = Appointment.objects.filter(
+        doctor=doctor,
+        status__in=['pending', 'confirmed']
+    ).order_by('appointment_date', 'appointment_time')
+
+    past_appointments = Appointment.objects.filter(
+        doctor=doctor,
+        status__in=['completed', 'cancelled']
+    ).order_by('-appointment_date', '-appointment_time')
+
+    # --- NEW: Fetch reports for this doctor ---
+    # Get IDs of patients who have appointments with this doctor
+    patient_ids_with_appointments = Appointment.objects.filter(doctor=doctor).values_list('patient__id', flat=True).distinct()
+
+    # Fetch reports uploaded by this doctor OR reports belonging to their patients
+    doctor_relevant_reports = Report.objects.filter(
+        models.Q(doctor=doctor) | models.Q(patient__id__in=patient_ids_with_appointments)
+    ).order_by('-uploaded_at').distinct() # Use distinct to avoid duplicates if a report matches both Q objects
+    # ------------------------------------------
+
+    context = {
+        'doctor': doctor,
+        'upcoming_appointments': upcoming_appointments,
+        'past_appointments': past_appointments,
+        'doctor_relevant_reports': doctor_relevant_reports, # <--- Add reports to context
+    }
+    return render(request, 'doctors/doctor_dashboard.html', context)

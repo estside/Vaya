@@ -32,3 +32,18 @@ class AppointmentAdmin(admin.ModelAdmin):
     date_hierarchy = 'appointment_date' # Adds date navigation
     raw_id_fields = ('patient', 'doctor') # Use raw ID input for ForeignKey fields for better performance with many users/doctors
 # --- NEW APPOINTMENT ADMIN ENDS HERE ---
+# healthcare_app_motihari/doctors/admin.py
+
+from django.contrib import admin
+from .models import Specialty, Doctor, Appointment, Report # Import Report
+
+# ... (SpecialtyAdmin, DoctorAdmin, AppointmentAdmin definitions) ...
+
+# --- NEW REPORT ADMIN STARTS HERE ---
+@admin.register(Report)
+class ReportAdmin(admin.ModelAdmin):
+    list_display = ('title', 'patient', 'doctor', 'uploaded_at', 'report_date', 'report_file')
+    list_filter = ('uploaded_at', 'report_date', 'doctor')
+    search_fields = ('title', 'patient__username', 'doctor__full_name', 'description')
+    raw_id_fields = ('patient', 'doctor') # Use raw ID input for ForeignKey fields for better performance
+# --- NEW REPORT ADMIN ENDS HERE ---

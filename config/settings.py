@@ -131,3 +131,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_REDIRECT_URL = 'custom_login_redirect' # Name of our new custom redirect URL
 LOGIN_URL = 'login'
+# healthcare_app_motihari/config/settings.py
+
+# ... (existing settings) ...
+
+# Media files (user-uploaded content)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media' # This will create a 'media' folder in your project root
+
+# ... (rest of settings) ...
