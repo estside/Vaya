@@ -125,3 +125,9 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# healthcare_app_motihari/config/settings.py
+
+# ... (existing settings) ...
+
+LOGIN_REDIRECT_URL = 'custom_login_redirect' # Name of our new custom redirect URL
+LOGIN_URL = 'login'

@@ -32,7 +32,13 @@
         {% for doctor in doctors %}
             <div class="doctor-card">
                 <h3>Dr. {{ doctor.full_name }}</h3>
-                <p><strong>Specialty:</strong> {{ doctor.specialty.name|default:"N/A" }}</p>
+                 <p><strong>Specialties:</strong>
+        {% for specialty in doctor.specialties.all %}
+            {{ specialty.name }}{% if not forloop.last %}, {% endif %}
+        {% empty %}
+            N/A
+        {% endfor %}
+    </p>
                 <p><strong>Clinic:</strong> {{ doctor.clinic_name }}</p>
                 <p><strong>Address:</strong> {{ doctor.clinic_address }}</p>
                 <p><strong>Contact:</strong> {{ doctor.contact_phone }}</p>

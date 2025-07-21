@@ -1,7 +1,7 @@
 # healthcare_app_motihari/doctors/models.py
 
 from django.db import models
-from users.models import CustomUser
+from users.models import CustomUser # Import CustomUser
 
 class Specialty(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -14,16 +14,8 @@ class Specialty(models.Model):
 
 class Doctor(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='doctor_login_profile')
-    # If you want to link a manager:
-    # managed_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='managed_doctors')
-
     full_name = models.CharField(max_length=200)
-    # --- CHANGE THIS LINE ---
-    # From: specialty = models.ForeignKey(Specialty, on_delete=models.SET_NULL, null=True, blank=True)
-    # To:
-    specialties = models.ManyToManyField(Specialty, blank=True, related_name='doctors') # Changed name to plural
-    # -----------------------
-
+    specialties = models.ManyToManyField(Specialty, blank=True, related_name='doctors')
     clinic_name = models.CharField(max_length=200)
     clinic_address = models.TextField()
     contact_phone = models.CharField(max_length=15, unique=True)
@@ -32,9 +24,52 @@ class Doctor(models.Model):
     is_approved = models.BooleanField(default=False)
 
     def __str__(self):
-        # Adjust __str__ to reflect multiple specialties
         specialty_names = ", ".join([s.name for s in self.specialties.all()])
         return f"Dr. {self.full_name} ({specialty_names})"
 
     class Meta:
         ordering = ['full_name']
+
+# --- NEW APPOINTMENT MODEL STARTS HERE ---
+class Appointment(models.Model):
+    # Patient will be a CustomUser. For now, it's a ForeignKey to CustomUser.
+    # Later, you might differentiate between Patient and Doctor users more explicitly.
+    patient = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='patient_appointments')
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='doctor_appointments')
+
+    # Appointment date and time
+    appointment_date = models.DateField()
+    appointment_time = models.TimeField()
+
+    # Status of the appointment
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('confirmed', 'Confirmed'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ]
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+
+    # Type of appointment (paid/unpaid)
+    APPOINTMENT_TYPE_CHOICES = [
+        ('unpaid', 'Unpaid'),
+        ('paid', 'Paid (Coming Soon!)'), # As requested, mark paid as coming soon
+    ]
+    appointment_type = models.CharField(max_length=10, choices=APPOINTMENT_TYPE_CHOICES, default='unpaid')
+
+    # Optional: Reason for appointment
+    reason = models.TextField(blank=True, null=True)
+
+    # Optional: Created at timestamp
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # Order appointments by date and time
+        ordering = ['appointment_date', 'appointment_time']
+        # Ensure a patient can't book the same doctor at the exact same time (optional, but good for uniqueness)
+        unique_together = ('doctor', 'appointment_date', 'appointment_time')
+
+    def __str__(self):
+        return f"Appointment for {self.patient.username} with Dr. {self.doctor.full_name} on {self.appointment_date} at {self.appointment_time} ({self.status})"
+
+# --- NEW APPOINTMENT MODEL ENDS HERE ---

@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dr. {{ doctor.full_name }} - Profile</title>
+    <title>Book Appointment with Dr. {{ doctor.full_name }} - Vaya</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        /* General Body & Typography */
+        /* Reusing global styles for consistency */
         body {
             margin: 0;
             font-family: 'Roboto', sans-serif;
@@ -26,7 +26,6 @@
             margin: 0 auto;
             padding: 20px;
         }
-        /* Header (reused from landing page) */
         header {
             background-color: #fff;
             padding: 20px 0;
@@ -61,8 +60,7 @@
         .nav-links a:hover {
             color: #007bff;
         }
-        /* Doctor Profile Specific Styles */
-        .profile-section {
+        .booking-section {
             flex-grow: 1;
             padding: 60px 0;
             background-color: #e6f6f2;
@@ -70,49 +68,87 @@
             align-items: center;
             justify-content: center;
         }
-        .doctor-profile {
+        .booking-card {
             background-color: #fff;
             padding: 40px;
             border-radius: 10px;
             box-shadow: 0 8px 20px rgba(0,0,0,0.15);
             width: 100%;
-            max-width: 700px;
+            max-width: 550px;
+            text-align: center;
+        }
+        .booking-card h2 {
+            font-size: 2.2em;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
             text-align: left;
         }
-        .doctor-profile h1 {
-            font-size: 2.5em;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 10px;
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #444;
         }
-        .doctor-profile p {
-            margin-bottom: 10px;
-            font-size: 1.1em;
+        .form-group input[type="date"],
+        .form-group input[type="time"],
+        .form-group textarea,
+        .form-group select {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+            box-sizing: border-box;
         }
-        .doctor-profile strong {
-            color: #1a4a6e;
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
         }
-        /* --- ADDED/UPDATED STYLES FOR BUTTON --- */
-        .btn-primary {
-            background-color: #007bff; /* Vaya Blue */
+        .submit-btn {
+            background-color: #007bff;
             color: #fff;
-            border: 2px solid #007bff;
-            display: inline-block;
             padding: 15px 30px;
-            margin-top: 20px; /* Added margin-top for spacing */
+            border: none;
             border-radius: 50px;
-            text-decoration: none;
+            font-size: 1.1em;
             font-weight: 600;
-            transition: background-color 0.3s ease, color 0.3s ease;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            margin-top: 20px;
         }
-        .btn-primary:hover {
+        .submit-btn:hover {
             background-color: #0056b3;
-            border-color: #0056b3;
+            transform: translateY(-2px);
         }
-        /* --- END ADDED/UPDATED STYLES --- */
-
-        /* Footer (reused) */
+        .errorlist {
+            list-style: none;
+            padding: 0;
+            margin: -15px 0 15px 0;
+            color: red;
+            font-size: 0.9em;
+            text-align: left;
+        }
+        .messages {
+            list-style: none;
+            padding: 10px 20px;
+            margin: 20px auto;
+            max-width: 600px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .messages .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .messages .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
         footer {
             background-color: #222;
             color: #eee;
@@ -144,7 +180,6 @@
         .footer-links a:hover {
             color: #007bff;
         }
-        /* Responsive Adjustments */
         @media (max-width: 768px) {
             .navbar {
                 flex-direction: column;
@@ -158,12 +193,18 @@
             .nav-links li {
                 margin: 0 15px 10px 15px;
             }
-            .profile-section {
+            .booking-section {
                 padding: 40px 0;
             }
-            .doctor-profile {
+            .booking-card {
                 padding: 25px;
                 margin: 0 15px;
+            }
+            .form-group input[type="date"],
+            .form-group input[type="time"],
+            .form-group textarea,
+            .form-group select {
+                width: 100%;
             }
         }
     </style>
@@ -190,32 +231,57 @@
         </div>
     </header>
 
-    <section class="profile-section">
+    <section class="booking-section">
         <div class="container">
-            <div class="doctor-profile">
-                <h1>Dr. {{ doctor.full_name }}</h1>
-                <p><strong>Clinic Name:</strong> {{ doctor.clinic_name }}</p>
-                <p><strong>Address:</strong> {{ doctor.clinic_address }}</p>
-                <p><strong>Specialties:</strong>
+            <div class="booking-card">
+                <h2>Book Appointment with Dr. {{ doctor.full_name }}</h2>
+                <p>Clinic: {{ doctor.clinic_name }}</p>
+                <p>Specialties:
                     {% for specialty in doctor.specialties.all %}
                         {{ specialty.name }}{% if not forloop.last %}, {% endif %}
                     {% empty %}
                         N/A
                     {% endfor %}
                 </p>
-                <p><strong>Qualifications:</strong> {{ doctor.qualifications|default:"Not provided" }}</p>
-                <p><strong>Contact Phone:</strong> {{ doctor.contact_phone }}</p>
-                <p><strong>Contact Email:</strong> {{ doctor.contact_email|default:"Not provided" }}</p>
+                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
 
-                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-                    <h3>Book an Appointment</h3>
-                    <p>Click below to request an appointment with Dr. {{ doctor.full_name }}.</p>
-                    {% if user.is_authenticated %}
-                        <a href="{% url 'book_appointment' doctor.id %}" class="btn-primary">Book Appointment Now</a>
-                    {% else %}
-                        <p>Please <a href="{% url 'login' %}">login</a> to book an appointment.</p>
-                    {% endif %}
-                </div>
+                {% if messages %}
+                    <ul class="messages">
+                        {% for message in messages %}
+                            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="form-group">
+                        <label for="{{ form.appointment_date.id_for_label }}">Preferred Date <span style="color: red;">*</span></label>
+                        {{ form.appointment_date }}
+                        {% if form.appointment_date.errors %}<small class="errorlist">{{ form.appointment_date.errors }}</small>{% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.appointment_time.id_for_label }}">Preferred Time <span style="color: red;">*</span></label>
+                        {{ form.appointment_time }}
+                        {% if form.appointment_time.errors %}<small class="errorlist">{{ form.appointment_time.errors }}</small>{% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.reason.id_for_label }}">Reason for Appointment (Optional)</label>
+                        {{ form.reason }}
+                        {% if form.reason.errors %}<small class="errorlist">{{ form.reason.errors }}</small>{% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.appointment_type.id_for_label }}">Appointment Type <span style="color: red;">*</span></label>
+                        {{ form.appointment_type }}
+                        {% if form.appointment_type.errors %}<small class="errorlist">{{ form.appointment_type.errors }}</small>{% endif %}
+                    </div>
+
+                    <button type="submit" class="submit-btn">Request Appointment</button>
+                </form>
             </div>
         </div>
     </section>
