@@ -1,244 +1,53 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register Your Clinic - Vaya</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        /* (Keep all the CSS from the previous answer for this HTML file) */
-        body {
-            margin: 0;
-            font-family: 'Roboto', sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f8fcfb;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        h1, h2, h3 {
-            font-family: 'Poppins', sans-serif;
-            color: #1a4a6e;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        header {
-            background-color: #fff;
-            padding: 20px 0;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo {
-            font-size: 1.8em;
-            font-weight: 700;
-            color: #007bff;
-            text-decoration: none;
-        }
-        .nav-links {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            display: flex;
-        }
-        .nav-links li {
-            margin-left: 30px;
-        }
-        .nav-links a {
-            text-decoration: none;
-            color: #555;
-            font-weight: 500;
-            transition: color 0.3s ease;
-        }
-        .nav-links a:hover {
-            color: #007bff;
-        }
+{% extends 'base.html' %}
+
+{% block title %}Register Your Clinic - Vaya{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Main Content - Form Section */
+    .registration-section {
+        flex-grow: 1;
+        padding: 60px 0;
+        background-color: #e6f6f2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .registration-card {
+        background-color: #fff;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        width: 100%;
+        max-width: 600px;
+        text-align: center;
+    }
+
+    .registration-card h2 {
+        font-size: 2.2em;
+        margin-bottom: 30px;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
         .registration-section {
-            flex-grow: 1;
-            padding: 60px 0;
-            background-color: #e6f6f2;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding: 40px 0;
         }
         .registration-card {
-            background-color: #fff;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-            width: 100%;
-            max-width: 600px;
-            text-align: center;
+            padding: 25px;
+            margin: 0 15px;
         }
-        .registration-card h2 {
-            font-size: 2.2em;
-            margin-bottom: 30px;
-        }
-        .form-group {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #444;
-        }
-        .form-group input[type="text"],
-        .form-group input[type="email"],
-        .form-group input[type="tel"],
-        .form-group textarea,
-        .form-group select {
-            width: calc(100% - 20px);
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 1em;
-            box-sizing: border-box;
-        }
-        .form-group textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-        .form-group select {
-            width: 100%;
-        }
-        .form-group input[type="checkbox"] {
-            margin-right: 10px;
-        }
-        .submit-btn {
-            background-color: #007bff;
-            color: #fff;
-            padding: 15px 30px;
-            border: none;
-            border-radius: 50px;
-            font-size: 1.1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            margin-top: 20px;
-        }
-        .submit-btn:hover {
-            background-color: #0056b3;
-            transform: translateY(-2px);
-        }
-        footer {
-            background-color: #222;
-            color: #eee;
-            padding: 40px 0;
-            text-align: center;
-            font-size: 0.9em;
-            margin-top: auto;
-        }
-        footer .logo {
-            color: #007bff;
-            font-size: 1.5em;
-            margin-bottom: 15px;
-            display: inline-block;
-        }
-        .footer-links {
-            list-style: none;
-            padding: 0;
-            margin: 0 0 20px 0;
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 15px 30px;
-        }
-        .footer-links a {
-            color: #eee;
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-        .footer-links a:hover {
-            color: #007bff;
-        }
-        @media (max-width: 768px) {
-            .navbar {
-                flex-direction: column;
-                text-align: center;
-            }
-            .nav-links {
-                margin-top: 15px;
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-            .nav-links li {
-                margin: 0 15px 10px 15px;
-            }
-            .registration-section {
-                padding: 40px 0;
-            }
-            .registration-card {
-                padding: 25px;
-                margin: 0 15px;
-            }
-            .form-group input[type="text"],
-            .form-group input[type="email"],
-            .form-group input[type="tel"],
-            .form-group textarea,
-            .form-group select {
-                width: 100%;
-            }
-        }
-        .messages {
-            list-style: none;
-            padding: 10px 20px;
-            margin: 20px auto;
-            max-width: 600px;
-            border-radius: 5px;
-            text-align: center;
-        }
-        .messages .success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .messages .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-    </style>
-</head>
-<body>
+    }
+</style>
+{% endblock %}
 
-    <header>
-        <div class="container navbar">
-            <a href="{% url 'landing_page' %}" class="logo">Vaya</a>
-            <nav>
-                <ul class="nav-links">
-                    <li><a href="{% url 'landing_page' %}">Home</a></li>
-                    <li><a href="#">For Patients</a></li>
-                    <li><a href="#">For Doctors</a></li>
-                    <li><a href="#">About Us</a></li>
-                    <li><a href="#">Contact</a></li>
-                </ul>
-            </nav>
-        </div>
-    </header>
-
+{% block content %}
     <section class="registration-section">
         <div class="container">
             <div class="registration-card">
                 <h2>Register Your Clinic with Vaya</h2>
                 <p>Join our network to connect with more patients and streamline your clinic operations.</p>
-
-                {% if messages %}
-                    <ul class="messages">
-                        {% for message in messages %}
-                            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
 
                 <form action="{% url 'register_clinic' %}" method="POST">
                     {% csrf_token %}
@@ -246,94 +55,72 @@
                     <div class="form-group">
                         <label for="{{ form.clinic_name.id_for_label }}">Clinic Name <span style="color: red;">*</span></label>
                         {{ form.clinic_name }}
-                        {% if form.clinic_name.errors %}<small style="color: red;">{{ form.clinic_name.errors }}</small>{% endif %}
+                        {% if form.clinic_name.errors %}<small class="errorlist">{{ form.clinic_name.errors }}</small>{% endif %}
                     </div>
 
                     <div class="form-group">
                         <label for="{{ form.clinic_address.id_for_label }}">Clinic Address <span style="color: red;">*</span></label>
                         {{ form.clinic_address }}
-                        {% if form.clinic_address.errors %}<small style="color: red;">{{ form.clinic_address.errors }}</small>{% endif %}
+                        {% if form.clinic_address.errors %}<small class="errorlist">{{ form.clinic_address.errors }}</small>{% endif %}
                     </div>
 
                     <div class="form-group">
                         <label for="{{ form.full_name.id_for_label }}">Primary Doctor / Contact Person Name <span style="color: red;">*</span></label>
                         {{ form.full_name }}
-                        {% if form.full_name.errors %}<small style="color: red;">{{ form.full_name.errors }}</small>{% endif %}
+                        {% if form.full_name.errors %}<small class="errorlist">{{ form.full_name.errors }}</small>{% endif %}
                     </div>
 
                     <div class="form-group">
                         <label for="{{ form.contact_email.id_for_label }}">Contact Email <span style="color: red;">*</span></label>
                         {{ form.contact_email }}
-                        {% if form.contact_email.errors %}<small style="color: red;">{{ form.contact_email.errors }}</small>{% endif %}
+                        {% if form.contact_email.errors %}<small class="errorlist">{{ form.contact_email.errors }}</small>{% endif %}
                     </div>
 
                     <div class="form-group">
                         <label for="{{ form.contact_phone.id_for_label }}">Contact Phone Number <span style="color: red;">*</span></label>
                         {{ form.contact_phone }}
-                        {% if form.contact_phone.errors %}<small style="color: red;">{{ form.contact_phone.errors }}</small>{% endif %}
+                        {% if form.contact_phone.errors %}<small class="errorlist">{{ form.contact_phone.errors }}</small>{% endif %}
                     </div>
 
                     <div class="form-group">
                         <label>Main Specialties Offered <span style="color: red;">*</span></label>
                         {{ form.specialties }}
-                        {% if form.specialties.errors %}<small style="color: red;">{{ form.specialties.errors }}</small>{% endif %}
+                        {% if form.specialties.errors %}<small class="errorlist">{{ form.specialties.errors }}</small>{% endif %}
+                        <small style="color: #666;">Hold Ctrl/Cmd to select multiple.</small>
                     </div>
 
                     <div class="form-group">
                         <label for="{{ form.qualifications.id_for_label }}">Primary Doctor's Qualifications (Optional)</label>
                         {{ form.qualifications }}
-                        {% if form.qualifications.errors %}<small style="color: red;">{{ form.qualifications.errors }}</small>{% endif %}
+                        {% if form.qualifications.errors %}<small class="errorlist">{{ form.qualifications.errors }}</small>{% endif %}
                     </div>
 
+                    <!-- User login details for the doctor -->
                     <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
                     <h3>Doctor Login Details</h3>
 
                     <div class="form-group">
                         <label for="{{ form.username.id_for_label }}">Choose a Username <span style="color: red;">*</span></label>
                         {{ form.username }}
-                        {% if form.username.errors %}<small style="color: red;">{{ form.username.errors }}</small>{% endif %}
+                        {% if form.username.errors %}<small class="errorlist">{{ form.username.errors }}</small>{% endif %}
                     </div>
 
                     <div class="form-group">
                         <label for="{{ form.password.id_for_label }}">Password <span style="color: red;">*</span></label>
                         {{ form.password }}
-                        {% if form.password.errors %}<small style="color: red;">{{ form.password.errors }}</small>{% endif %}
+                        {% if form.password.errors %}<small class="errorlist">{{ form.password.errors }}</small>{% endif %}
                     </div>
 
                     <div class="form-group">
                         <label for="{{ form.confirm_password.id_for_label }}">Confirm Password <span style="color: red;">*</span></label>
                         {{ form.confirm_password }}
-                        {% if form.confirm_password.errors %}<small style="color: red;">{{ form.confirm_password.errors }}</small>{% endif %}
+                        {% if form.confirm_password.errors %}<small class="errorlist">{{ form.confirm_password.errors }}</small>{% endif %}
                     </div>
 
 
-                    <button type="submit" class="submit-btn">Register Clinic</button>
+                    <button type="submit" class="btn-primary">Register Clinic</button>
                 </form>
             </div>
         </div>
     </section>
-
-    <div style="text-align: center; padding: 50px; background-color: #e6f6f2; height: 100vh;">
-        <h2 style="color: #1a4a6e;">Thank You for Registering with Vaya!</h2>
-        <p style="font-size: 1.1em; color: #4a6b82;">Your clinic registration has been submitted successfully. We will review your details soon and activate your profile.</p>
-        <p style="font-size: 1.1em; color: #4a6b82;">You will receive an email notification once your profile is approved.</p>
-        <a href="{% url 'landing_page' %}" style="display: inline-block; margin-top: 30px; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Go to Homepage</a>
-    </div>
-
-
-    <footer>
-        <div class="container">
-            <a href="{% url 'landing_page' %}" class="logo">Vaya</a>
-            <ul class="footer-links">
-                <li><a href="{% url 'landing_page' %}">Home</a></li>
-                <li><a href="#">About Us</a></li>
-                <li><a href="#">Contact Us</a></li>
-                <li><a href="#">Privacy Policy</a></li>
-                <li><a href="#">Terms of Service</a></li>
-            </ul>
-            <p>&copy; 2025 Vaya. All rights reserved.</p>
-        </div>
-    </footer>
-
-</body>
-</html>
+{% endblock %}

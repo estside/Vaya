@@ -1,52 +1,160 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Find a Doctor in Motihari</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .doctor-card { border: 1px solid #ccc; padding: 15px; margin-bottom: 10px; border-radius: 5px; }
-        .doctor-card h3 { margin-top: 0; color: #007bff; }
-        .search-filter { margin-bottom: 20px; }
-        .search-filter input, .search-filter select, .search-filter button { padding: 8px; margin-right: 5px; }
-    </style>
-</head>
-<body>
-    <h1>Find a Doctor in Motihari</h1>
+{% extends 'base.html' %}
 
-    <div class="search-filter">
-        <form method="GET" action="{% url 'doctor_list' %}">
-            <input type="text" name="q" placeholder="Search by name" value="{{ current_query|default_if_none:'' }}">
-            <select name="specialty">
-                <option value="">All Specialties</option>
-                {% for specialty in specialties %}
-                    <option value="{{ specialty.name }}" {% if specialty.name == current_specialty %}selected{% endif %}>{{ specialty.name }}</option>
-                {% endfor %}
-            </select>
-            <button type="submit">Search / Filter</button>
-        </form>
-    </div>
+{% block title %}Find a Doctor in Motihari - Vaya{% endblock %}
 
-    {% if doctors %}
-        {% for doctor in doctors %}
-            <div class="doctor-card">
-                <h3>Dr. {{ doctor.full_name }}</h3>
-                 <p><strong>Specialties:</strong>
-        {% for specialty in doctor.specialties.all %}
-            {{ specialty.name }}{% if not forloop.last %}, {% endif %}
-        {% empty %}
-            N/A
-        {% endfor %}
-    </p>
-                <p><strong>Clinic:</strong> {{ doctor.clinic_name }}</p>
-                <p><strong>Address:</strong> {{ doctor.clinic_address }}</p>
-                <p><strong>Contact:</strong> {{ doctor.contact_phone }}</p>
-                <p><a href="{% url 'doctor_detail' doctor.id %}">View Details</a></p>
+{% block extra_head %}
+<style>
+    /* Doctor List Specific Styles */
+    .doctor-list-section {
+        padding: 40px 0;
+        background-color: #e6f6f2;
+        flex-grow: 1; /* Ensure it takes up available space */
+    }
+    .list-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+    .list-header h1 {
+        font-size: 2.8em;
+        margin-bottom: 10px;
+    }
+    .search-filter {
+        margin-bottom: 30px;
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        justify-content: center;
+        align-items: center;
+    }
+    .search-filter input,
+    .search-filter select {
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 1em;
+        min-width: 180px;
+    }
+    .search-filter button {
+        background-color: #1a4a6e;
+        color: #fff;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        font-size: 1em;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+    .search-filter button:hover {
+        background-color: #007bff;
+    }
+
+    .doctor-card {
+        background-color: #fff;
+        padding: 20px;
+        margin-bottom: 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .doctor-card h3 {
+        margin-top: 0;
+        color: #007bff;
+        font-size: 1.6em;
+    }
+    .doctor-card p {
+        margin: 0;
+        color: #555;
+    }
+    .doctor-card strong {
+        color: #1a4a6e;
+    }
+    .doctor-card a {
+        display: inline-block;
+        margin-top: 10px;
+        padding: 8px 15px;
+        background-color: #007bff;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+    }
+    .doctor-card a:hover {
+        background-color: #0056b3;
+    }
+    .no-doctors {
+        text-align: center;
+        padding: 30px;
+        border: 1px dashed #ccc;
+        border-radius: 8px;
+        color: #777;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .list-header h1 {
+            font-size: 2em;
+        }
+        .search-filter {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .search-filter input,
+        .search-filter select,
+        .search-filter button {
+            width: 100%;
+            margin-right: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <section class="doctor-list-section">
+        <div class="container">
+            <div class="list-header">
+                <h1>Find a Doctor in Motihari</h1>
+                <p>Connecting you with trusted healthcare professionals in your local community.</p>
             </div>
-        {% endfor %}
-    {% else %}
-        <p>No doctors found matching your criteria.</p>
-    {% endif %}
-</body>
-</html>
+
+            <div class="search-filter">
+                <form method="GET" action="{% url 'doctor_list' %}">
+                    <input type="text" name="q" placeholder="Search by name" value="{{ current_query|default_if_none:'' }}">
+                    <select name="specialty">
+                        <option value="">All Specialties</option>
+                        {% for specialty in specialties %}
+                            <option value="{{ specialty.name }}" {% if specialty.name == current_specialty %}selected{% endif %}>{{ specialty.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit">Search / Filter</button>
+                </form>
+            </div>
+
+            {% if doctors %}
+                {% for doctor in doctors %}
+                    <div class="doctor-card">
+                        <h3>Dr. {{ doctor.full_name }}</h3>
+                        <p><strong>Specialties:</strong>
+                            {% for specialty in doctor.specialties.all %}
+                                {{ specialty.name }}{% if not forloop.last %}, {% endif %}
+                            {% empty %}
+                                N/A
+                            {% endfor %}
+                        </p>
+                        <p><strong>Clinic:</strong> {{ doctor.clinic_name }}</p>
+                        <p><strong>Address:</strong> {{ doctor.clinic_address }}</p>
+                        <p><strong>Contact:</strong> {{ doctor.contact_phone }}</p>
+                        <a href="{% url 'doctor_detail' doctor.id %}" class="btn-primary" style="padding: 8px 15px; margin-top: 10px; font-size: 0.9em;">View Details</a>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="no-doctors">No doctors found matching your criteria.</p>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}

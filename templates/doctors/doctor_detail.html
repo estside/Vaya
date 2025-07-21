@@ -1,195 +1,55 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dr. {{ doctor.full_name }} - Profile</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        /* General Body & Typography */
-        body {
-            margin: 0;
-            font-family: 'Roboto', sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f8fcfb;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        h1, h2, h3 {
-            font-family: 'Poppins', sans-serif;
-            color: #1a4a6e;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        /* Header (reused from landing page) */
-        header {
-            background-color: #fff;
-            padding: 20px 0;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo {
-            font-size: 1.8em;
-            font-weight: 700;
-            color: #007bff;
-            text-decoration: none;
-        }
-        .nav-links {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            display: flex;
-        }
-        .nav-links li {
-            margin-left: 30px;
-        }
-        .nav-links a {
-            text-decoration: none;
-            color: #555;
-            font-weight: 500;
-            transition: color 0.3s ease;
-        }
-        .nav-links a:hover {
-            color: #007bff;
-        }
-        /* Doctor Profile Specific Styles */
+{% extends 'base.html' %}
+
+{% block title %}Dr. {{ doctor.full_name }} - Profile - Vaya{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Doctor Profile Specific Styles */
+    .profile-section {
+        flex-grow: 1;
+        padding: 60px 0;
+        background-color: #e6f6f2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .doctor-profile {
+        background-color: #fff;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        width: 100%;
+        max-width: 700px;
+        text-align: left;
+    }
+    .doctor-profile h1 {
+        font-size: 2.5em;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 10px;
+    }
+    .doctor-profile p {
+        margin-bottom: 10px;
+        font-size: 1.1em;
+    }
+    .doctor-profile strong {
+        color: #1a4a6e;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
         .profile-section {
-            flex-grow: 1;
-            padding: 60px 0;
-            background-color: #e6f6f2;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding: 40px 0;
         }
         .doctor-profile {
-            background-color: #fff;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-            width: 100%;
-            max-width: 700px;
-            text-align: left;
+            padding: 25px;
+            margin: 0 15px;
         }
-        .doctor-profile h1 {
-            font-size: 2.5em;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 10px;
-        }
-        .doctor-profile p {
-            margin-bottom: 10px;
-            font-size: 1.1em;
-        }
-        .doctor-profile strong {
-            color: #1a4a6e;
-        }
-        /* --- ADDED/UPDATED STYLES FOR BUTTON --- */
-        .btn-primary {
-            background-color: #007bff; /* Vaya Blue */
-            color: #fff;
-            border: 2px solid #007bff;
-            display: inline-block;
-            padding: 15px 30px;
-            margin-top: 20px; /* Added margin-top for spacing */
-            border-radius: 50px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: background-color 0.3s ease, color 0.3s ease;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        .btn-primary:hover {
-            background-color: #0056b3;
-            border-color: #0056b3;
-        }
-        /* --- END ADDED/UPDATED STYLES --- */
+    }
+</style>
+{% endblock %}
 
-        /* Footer (reused) */
-        footer {
-            background-color: #222;
-            color: #eee;
-            padding: 40px 0;
-            text-align: center;
-            font-size: 0.9em;
-            margin-top: auto;
-        }
-        footer .logo {
-            color: #007bff;
-            font-size: 1.5em;
-            margin-bottom: 15px;
-            display: inline-block;
-        }
-        .footer-links {
-            list-style: none;
-            padding: 0;
-            margin: 0 0 20px 0;
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 15px 30px;
-        }
-        .footer-links a {
-            color: #eee;
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-        .footer-links a:hover {
-            color: #007bff;
-        }
-        /* Responsive Adjustments */
-        @media (max-width: 768px) {
-            .navbar {
-                flex-direction: column;
-                text-align: center;
-            }
-            .nav-links {
-                margin-top: 15px;
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-            .nav-links li {
-                margin: 0 15px 10px 15px;
-            }
-            .profile-section {
-                padding: 40px 0;
-            }
-            .doctor-profile {
-                padding: 25px;
-                margin: 0 15px;
-            }
-        }
-    </style>
-</head>
-<body>
-
-    <header>
-        <div class="container navbar">
-            <a href="{% url 'landing_page' %}" class="logo">Vaya</a>
-            <nav>
-                <ul class="nav-links">
-                    <li><a href="{% url 'landing_page' %}">Home</a></li>
-                    <li><a href="{% url 'doctor_list' %}">Find Doctors</a></li>
-                    <li><a href="{% url 'register_clinic' %}">For Doctors</a></li>
-                    <li><a href="#">About Us</a></li>
-                    <li><a href="#">Contact</a></li>
-                    {% if user.is_authenticated %}
-                        <li><a href="{% url 'logout' %}">Logout ({{ user.username }})</a></li>
-                    {% else %}
-                        <li><a href="{% url 'login' %}">Login</a></li>
-                    {% endif %}
-                </ul>
-            </nav>
-        </div>
-    </header>
-
+{% block content %}
     <section class="profile-section">
         <div class="container">
             <div class="doctor-profile">
@@ -219,20 +79,4 @@
             </div>
         </div>
     </section>
-
-    <footer>
-        <div class="container">
-            <a href="{% url 'landing_page' %}" class="logo">Vaya</a>
-            <ul class="footer-links">
-                <li><a href="{% url 'landing_page' %}">Home</a></li>
-                <li><a href="#">About Us</a></li>
-                <li><a href="#">Contact Us</a></li>
-                <li><a href="#">Privacy Policy</a></li>
-                <li><a href="#">Terms of Service</a></li>
-            </ul>
-            <p>&copy; 2025 Vaya. All rights reserved.</p>
-        </div>
-    </footer>
-
-</body>
-</html>
+{% endblock %}

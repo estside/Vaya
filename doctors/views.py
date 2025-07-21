@@ -9,20 +9,23 @@ def doctor_list(request):
     specialties = Specialty.objects.all() # For filter options
 
     # Basic search functionality
-    query = request.GET.get('q')
+    query = request.GET.get('q') # <--- Check if 'q' is correctly retrieved
     if query:
+        # Filter by full_name containing the query (case-insensitive)
         doctors = doctors.filter(full_name__icontains=query)
 
     # Basic filter by specialty
-    specialty_filter = request.GET.get('specialties')
+    specialty_filter = request.GET.get('specialty') # <--- Check if 'specialty' is correctly retrieved
     if specialty_filter:
-        doctors = doctors.filter(specialty__name=specialty_filter)
+        # Filter by specialties (ManyToManyField lookup)
+        # This filters doctors who have a specialty with that exact name
+        doctors = doctors.filter(specialties__name=specialty_filter)
 
     context = {
         'doctors': doctors,
         'specialties': specialties,
-        'current_query': query,
-        'current_specialty': specialty_filter,
+        'current_query': query, # <--- Pass back the current query for input field
+        'current_specialty': specialty_filter, # <--- Pass back the current specialty for select field
     }
     return render(request, 'doctors/doctor_list.html', context)
 

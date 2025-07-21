@@ -1,236 +1,46 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Appointment with Dr. {{ doctor.full_name }} - Vaya</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        /* Reusing global styles for consistency */
-        body {
-            margin: 0;
-            font-family: 'Roboto', sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f8fcfb;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        h1, h2, h3 {
-            font-family: 'Poppins', sans-serif;
-            color: #1a4a6e;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        header {
-            background-color: #fff;
-            padding: 20px 0;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo {
-            font-size: 1.8em;
-            font-weight: 700;
-            color: #007bff;
-            text-decoration: none;
-        }
-        .nav-links {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            display: flex;
-        }
-        .nav-links li {
-            margin-left: 30px;
-        }
-        .nav-links a {
-            text-decoration: none;
-            color: #555;
-            font-weight: 500;
-            transition: color 0.3s ease;
-        }
-        .nav-links a:hover {
-            color: #007bff;
-        }
+{% extends 'base.html' %}
+
+{% block title %}Book Appointment with Dr. {{ doctor.full_name }} - Vaya{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Main Content - Form Section */
+    .booking-section {
+        flex-grow: 1;
+        padding: 60px 0;
+        background-color: #e6f6f2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .booking-card {
+        background-color: #fff;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        width: 100%;
+        max-width: 550px;
+        text-align: center;
+    }
+    .booking-card h2 {
+        font-size: 2.2em;
+        margin-bottom: 30px;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
         .booking-section {
-            flex-grow: 1;
-            padding: 60px 0;
-            background-color: #e6f6f2;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding: 40px 0;
         }
         .booking-card {
-            background-color: #fff;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-            width: 100%;
-            max-width: 550px;
-            text-align: center;
+            padding: 25px;
+            margin: 0 15px;
         }
-        .booking-card h2 {
-            font-size: 2.2em;
-            margin-bottom: 30px;
-        }
-        .form-group {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #444;
-        }
-        .form-group input[type="date"],
-        .form-group input[type="time"],
-        .form-group textarea,
-        .form-group select {
-            width: calc(100% - 20px);
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 1em;
-            box-sizing: border-box;
-        }
-        .form-group textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-        .submit-btn {
-            background-color: #007bff;
-            color: #fff;
-            padding: 15px 30px;
-            border: none;
-            border-radius: 50px;
-            font-size: 1.1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            margin-top: 20px;
-        }
-        .submit-btn:hover {
-            background-color: #0056b3;
-            transform: translateY(-2px);
-        }
-        .errorlist {
-            list-style: none;
-            padding: 0;
-            margin: -15px 0 15px 0;
-            color: red;
-            font-size: 0.9em;
-            text-align: left;
-        }
-        .messages {
-            list-style: none;
-            padding: 10px 20px;
-            margin: 20px auto;
-            max-width: 600px;
-            border-radius: 5px;
-            text-align: center;
-        }
-        .messages .success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .messages .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        footer {
-            background-color: #222;
-            color: #eee;
-            padding: 40px 0;
-            text-align: center;
-            font-size: 0.9em;
-            margin-top: auto;
-        }
-        footer .logo {
-            color: #007bff;
-            font-size: 1.5em;
-            margin-bottom: 15px;
-            display: inline-block;
-        }
-        .footer-links {
-            list-style: none;
-            padding: 0;
-            margin: 0 0 20px 0;
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 15px 30px;
-        }
-        .footer-links a {
-            color: #eee;
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-        .footer-links a:hover {
-            color: #007bff;
-        }
-        @media (max-width: 768px) {
-            .navbar {
-                flex-direction: column;
-                text-align: center;
-            }
-            .nav-links {
-                margin-top: 15px;
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-            .nav-links li {
-                margin: 0 15px 10px 15px;
-            }
-            .booking-section {
-                padding: 40px 0;
-            }
-            .booking-card {
-                padding: 25px;
-                margin: 0 15px;
-            }
-            .form-group input[type="date"],
-            .form-group input[type="time"],
-            .form-group textarea,
-            .form-group select {
-                width: 100%;
-            }
-        }
-    </style>
-</head>
-<body>
+    }
+</style>
+{% endblock %}
 
-    <header>
-        <div class="container navbar">
-            <a href="{% url 'landing_page' %}" class="logo">Vaya</a>
-            <nav>
-                <ul class="nav-links">
-                    <li><a href="{% url 'landing_page' %}">Home</a></li>
-                    <li><a href="{% url 'doctor_list' %}">Find Doctors</a></li>
-                    <li><a href="{% url 'register_clinic' %}">For Doctors</a></li>
-                    <li><a href="#">About Us</a></li>
-                    <li><a href="#">Contact</a></li>
-                    {% if user.is_authenticated %}
-                        <li><a href="{% url 'logout' %}">Logout ({{ user.username }})</a></li>
-                    {% else %}
-                        <li><a href="{% url 'login' %}">Login</a></li>
-                    {% endif %}
-                </ul>
-            </nav>
-        </div>
-    </header>
-
+{% block content %}
     <section class="booking-section">
         <div class="container">
             <div class="booking-card">
@@ -244,14 +54,6 @@
                     {% endfor %}
                 </p>
                 <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
-
-                {% if messages %}
-                    <ul class="messages">
-                        {% for message in messages %}
-                            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
 
                 <form method="post">
                     {% csrf_token %}
@@ -280,25 +82,9 @@
                         {% if form.appointment_type.errors %}<small class="errorlist">{{ form.appointment_type.errors }}</small>{% endif %}
                     </div>
 
-                    <button type="submit" class="submit-btn">Request Appointment</button>
+                    <button type="submit" class="btn-primary">Request Appointment</button>
                 </form>
             </div>
         </div>
     </section>
-
-    <footer>
-        <div class="container">
-            <a href="{% url 'landing_page' %}" class="logo">Vaya</a>
-            <ul class="footer-links">
-                <li><a href="{% url 'landing_page' %}">Home</a></li>
-                <li><a href="#">About Us</a></li>
-                <li><a href="#">Contact Us</a></li>
-                <li><a href="#">Privacy Policy</a></li>
-                <li><a href="#">Terms of Service</a></li>
-            </ul>
-            <p>&copy; 2025 Vaya. All rights reserved.</p>
-        </div>
-    </footer>
-
-</body>
-</html>
+{% endblock %}

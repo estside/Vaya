@@ -1,261 +1,140 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Patient Dashboard - Vaya</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        /* General Body & Typography */
-        body {
-            margin: 0;
-            font-family: 'Roboto', sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f8fcfb;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
+{% extends 'base.html' %}
 
-        h1, h2, h3 {
-            font-family: 'Poppins', sans-serif;
-            color: #1a4a6e;
-        }
+{% block title %}Patient Dashboard - Vaya{% endblock %}
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
+{% block extra_head %}
+<style>
+    /* Dashboard Specific Styles */
+    .dashboard-section {
+        flex-grow: 1;
+        padding: 40px 0;
+        background-color: #e6f6f2;
+    }
 
-        /* Header (reused) */
-        header {
-            background-color: #fff;
-            padding: 20px 0;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
+    .dashboard-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
 
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    .dashboard-header h1 {
+        font-size: 2.8em;
+        margin-bottom: 10px;
+    }
 
-        .logo {
-            font-size: 1.8em;
-            font-weight: 700;
-            color: #007bff;
-            text-decoration: none;
-        }
+    .dashboard-content {
+        display: grid;
+        grid-template-columns: 1fr 2fr; /* Sidebar and main content */
+        gap: 30px;
+        align-items: start;
+    }
 
-        .nav-links {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            display: flex;
-        }
+    .sidebar {
+        background-color: #fff;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
 
-        .nav-links li {
-            margin-left: 30px;
-        }
+    .sidebar h2 {
+        font-size: 1.8em;
+        margin-top: 0;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 10px;
+    }
 
-        .nav-links a {
-            text-decoration: none;
-            color: #555;
-            font-weight: 500;
-            transition: color 0.3s ease;
-        }
+    .profile-info p {
+        margin-bottom: 10px;
+        font-size: 1.05em;
+    }
 
-        .nav-links a:hover {
-            color: #007bff;
-        }
+    .profile-info strong {
+        color: #1a4a6e;
+    }
 
-        /* Dashboard Specific Styles */
-        .dashboard-section {
-            flex-grow: 1;
-            padding: 40px 0;
-            background-color: #e6f6f2;
-        }
+    .main-content {
+        background-color: #fff;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
 
-        .dashboard-header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
+    .main-content h2 {
+        font-size: 1.8em;
+        margin-top: 0;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 10px;
+    }
 
-        .dashboard-header h1 {
-            font-size: 2.8em;
-            margin-bottom: 10px;
-        }
+    .appointments-list {
+        list-style: none;
+        padding: 0;
+    }
 
+    .appointment-item {
+        background-color: #f9f9f9;
+        border: 1px solid #eee;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .appointment-item.pending { background-color: #fff3cd; border-color: #ffeeba; } /* Yellow for pending */
+    .appointment-item.confirmed { background-color: #d4edda; border-color: #c3e6cb; } /* Green for confirmed */
+    .appointment-item.completed { background-color: #e2e3e5; border-color: #d6d8db; } /* Gray for completed */
+    .appointment-item.cancelled { background-color: #f8d7da; border-color: #f5c6cb; } /* Red for cancelled */
+
+    .appointment-details strong {
+        color: #1a4a6e;
+    }
+
+    .no-appointments {
+        text-align: center;
+        color: #777;
+        padding: 20px;
+        border: 1px dashed #ccc;
+        border-radius: 5px;
+    }
+    /* Button adjustments for specific dashboard use */
+    .sidebar .btn-secondary, .sidebar .btn-primary {
+        padding: 10px;
+        margin-top: 20px;
+        width: 100%;
+        text-align: center;
+        box-shadow: none; /* Remove extra shadow for sidebar buttons */
+    }
+    .main-content .btn-primary {
+        padding: 8px 15px;
+        font-size: 0.9em;
+        margin-top: 0; /* Override default margin-top */
+        box-shadow: none;
+    }
+
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
         .dashboard-content {
-            display: grid;
-            grid-template-columns: 1fr 2fr; /* Sidebar and main content */
-            gap: 30px;
-            align-items: start;
+            grid-template-columns: 1fr; /* Stack columns on small screens */
         }
-
-        .sidebar {
-            background-color: #fff;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        }
-
-        .sidebar h2 {
-            font-size: 1.8em;
-            margin-top: 0;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 10px;
-        }
-
-        .profile-info p {
-            margin-bottom: 10px;
-            font-size: 1.05em;
-        }
-
-        .profile-info strong {
-            color: #1a4a6e;
-        }
-
-        .main-content {
-            background-color: #fff;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        }
-
-        .main-content h2 {
-            font-size: 1.8em;
-            margin-top: 0;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 10px;
-        }
-
-        .appointments-list {
-            list-style: none;
-            padding: 0;
-        }
-
-        .appointment-item {
-            background-color: #f9f9f9;
-            border: 1px solid #eee;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 5px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .appointment-item.pending { background-color: #fff3cd; border-color: #ffeeba; } /* Yellow for pending */
-        .appointment-item.confirmed { background-color: #d4edda; border-color: #c3e6cb; } /* Green for confirmed */
-        .appointment-item.completed { background-color: #e2e3e5; border-color: #d6d8db; } /* Gray for completed */
-        .appointment-item.cancelled { background-color: #f8d7da; border-color: #f5c6cb; } /* Red for cancelled */
-
-        .appointment-details strong {
-            color: #1a4a6e;
-        }
-
-        .no-appointments {
-            text-align: center;
-            color: #777;
+        .sidebar, .main-content {
             padding: 20px;
-            border: 1px dashed #ccc;
-            border-radius: 5px;
         }
-
-        /* Footer (reused) */
-        footer {
-            background-color: #222;
-            color: #eee;
-            padding: 40px 0;
-            text-align: center;
-            font-size: 0.9em;
-            margin-top: auto;
+        .dashboard-header h1 {
+            font-size: 2em;
         }
-
-        footer .logo {
-            color: #007bff;
-            font-size: 1.5em;
-            margin-bottom: 15px;
-            display: inline-block;
+        .appointment-item {
+            flex-direction: column;
+            align-items: flex-start;
         }
+    }
+</style>
+{% endblock %}
 
-        .footer-links {
-            list-style: none;
-            padding: 0;
-            margin: 0 0 20px 0;
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 15px 30px;
-        }
-
-        .footer-links a {
-            color: #eee;
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-
-        .footer-links a:hover {
-            color: #007bff;
-        }
-
-        /* Responsive Adjustments */
-        @media (max-width: 768px) {
-            .navbar {
-                flex-direction: column;
-                text-align: center;
-            }
-            .nav-links {
-                margin-top: 15px;
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-            .nav-links li {
-                margin: 0 15px 10px 15px;
-            }
-            .dashboard-content {
-                grid-template-columns: 1fr; /* Stack columns on small screens */
-            }
-            .sidebar, .main-content {
-                padding: 20px;
-            }
-            .dashboard-header h1 {
-                font-size: 2em;
-            }
-            .appointment-item {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-        }
-    </style>
-</head>
-<body>
-
-    <header>
-        <div class="container navbar">
-            <a href="{% url 'landing_page' %}" class="logo">Vaya</a>
-            <nav>
-                <ul class="nav-links">
-                    <li><a href="{% url 'landing_page' %}">Home</a></li>
-                    <li><a href="{% url 'doctor_list' %}">Find Doctors</a></li>
-                    <li><a href="{% url 'register_clinic' %}">For Doctors</a></li>
-                    <li><a href="#">About Us</a></li>
-                    <li><a href="#">Contact</a></li>
-                    {% if user.is_authenticated %}
-                        <li><a href="{% url 'logout' %}">Logout ({{ user.username }})</a></li>
-                    {% else %}
-                        <li><a href="{% url 'login' %}">Login</a></li>
-                    {% endif %}
-                </ul>
-            </nav>
-        </div>
-    </header>
-
+{% block content %}
     <section class="dashboard-section">
         <div class="container">
             <div class="dashboard-header">
@@ -272,25 +151,63 @@
                         <p><strong>First Name:</strong> {{ user.first_name|default:"Not provided" }}</p>
                         <p><strong>Last Name:</strong> {{ user.last_name|default:"Not provided" }}</p>
                         <p><strong>Joined:</strong> {{ user.date_joined|date:"F d, Y" }}</p>
-                        <a href="{% url 'patient_profile_edit' %}" class="btn-secondary" style="width: 100%; padding: 10px; margin-top: 20px; text-align: center;">Edit Profile</a>
+                        <a href="{% url 'patient_profile_edit' %}" class="btn-secondary">Edit Profile</a>
                     </div>
+                    <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+                    <h2>My Reports</h2>
+                    <p style="font-size: 0.9em; color: #666;">View and manage your medical reports.</p>
+                    
+                    <!-- Add a list of reports here later -->
                 </div>
+
+                <div class="main-content">
+                    <h2>Upcoming Appointments</h2>
+                    {% if upcoming_appointments %}
+                        <ul class="appointments-list">
+                            {% for appointment in upcoming_appointments %}
+                                <li class="appointment-item {{ appointment.status }}">
+                                    <div class="appointment-details">
+                                        <p><strong>Doctor:</strong> Dr. {{ appointment.doctor.full_name }}</p>
+                                        <p><strong>Clinic:</strong> {{ appointment.doctor.clinic_name }}</p>
+                                        <p><strong>Date:</strong> {{ appointment.appointment_date|date:"F d, Y" }}</p>
+                                        <p><strong>Time:</strong> {{ appointment.appointment_time|time:"h:i A" }}</p>
+                                        <p><strong>Status:</strong> {{ appointment.get_status_display }}</p>
+                                        <p><strong>Type:</strong> {{ appointment.get_appointment_type_display }}</p>
+                                        {% if appointment.reason %}<p><strong>Reason:</strong> {{ appointment.reason }}</p>{% endif %}
+                                    </div>
+                                    <div class="appointment-actions">
+                                        <!-- Add action buttons later (e.g., Cancel) -->
+                                        <button class="btn-primary" style="padding: 8px 15px; font-size: 0.9em;">Manage (Soon!)</button>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="no-appointments">No upcoming appointments. <a href="{% url 'doctor_list' %}">Find a doctor to book your first appointment!</a></p>
+                    {% endif %}
+
+                    <h2 style="margin-top: 40px;">Past Appointments</h2>
+                    {% if past_appointments %}
+                        <ul class="appointments-list">
+                            {% for appointment in past_appointments %}
+                                <li class="appointment-item {{ appointment.status }}">
+                                    <div class="appointment-details">
+                                        <p><strong>Doctor:</strong> Dr. {{ appointment.doctor.full_name }}</p>
+                                        <p><strong>Clinic:</strong> {{ appointment.doctor.clinic_name }}</p>
+                                        <p><strong>Date:</strong> {{ appointment.appointment_date|date:"F d, Y" }}</p>
+                                        <p><strong>Time:</strong> {{ appointment.appointment_time|time:"h:i A" }}</p>
+                                        <p><strong>Status:</strong> {{ appointment.get_status_display }}</p>
+                                        <p><strong>Type:</strong> {{ appointment.get_appointment_type_display }}</p>
+                                        {% if appointment.reason %}<p><strong>Reason:</strong> {{ appointment.reason }}</p>{% endif %}
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="no-appointments">No past appointments.</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </section>
-
-    <footer>
-        <div class="container">
-            <a href="{% url 'landing_page' %}" class="logo">Vaya</a>
-            <ul class="footer-links">
-                <li><a href="{% url 'landing_page' %}">Home</a></li>
-                <li><a href="#">About Us</a></li>
-                <li><a href="#">Contact Us</a></li>
-                <li><a href="#">Privacy Policy</a></li>
-                <li><a href="#">Terms of Service</a></li>
-            </ul>
-            <p>&copy; 2025 Vaya. All rights reserved.</p>
-        </div>
-    </footer>
-
-</body>
-</html>
+{% endblock %}

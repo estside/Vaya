@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Appointment Requested - Vaya{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Specific styles for success page layout */
+    /* Added margin to push it away from fixed header/footer */
+    .success-card {
+        background-color: #fff;
+        padding: 50px;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        max-width: 600px;
+        text-align: center;
+        margin: 80px auto; /* Centered with vertical margin */
+    }
+    .success-card h2 {
+        color: #155724; /* Green for success */
+        font-family: 'Poppins', sans-serif;
+        font-size: 2.5em;
+        margin-bottom: 20px;
+    }
+    .success-card p {
+        font-size: 1.1em;
+        color: #4a6b82;
+        margin-bottom: 30px;
+    }
+    /* Adjust button margins for this specific page */
+    .success-card .btn-primary {
+        margin: 0 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="success-card">
+        <h2>Appointment Requested Successfully!</h2>
+        <p>Your appointment request has been sent. The doctor will review it and confirm soon.</p>
+        <p>You will be notified once the appointment status changes.</p>
+        <a href="{% url 'landing_page' %}" class="btn-primary">Go to Homepage</a>
+        <a href="{% url 'doctor_list' %}" class="btn-primary">Find More Doctors</a>
+    </div>
+{% endblock %}
