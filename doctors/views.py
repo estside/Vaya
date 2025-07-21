@@ -160,3 +160,74 @@ def appointment_success(request):
     Simple success page after appointment booking.
     """
     return render(request, 'doctors/appointment_success.html')
+# healthcare_app_motihari/doctors/views.py
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
+from .models import Doctor, Specialty, Appointment
+from .forms import ClinicRegistrationForm, PatientSignUpForm, AppointmentBookingForm
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import Http404 # Import Http404
+
+# ... (existing doctor_list, doctor_detail, register_clinic, clinic_registration_success, doctor_dashboard, book_appointment, appointment_success views) ...
+
+@login_required
+def confirm_appointment(request, appointment_id):
+    """
+    Allows a doctor to confirm a pending appointment.
+    """
+    if request.method == 'POST':
+        appointment = get_object_or_404(Appointment, id=appointment_id)
+
+        # Security check: Ensure the logged-in user is the doctor associated with this appointment
+        try:
+            current_doctor = request.user.doctor_login_profile
+            if appointment.doctor != current_doctor:
+                messages.error(request, "You are not authorized to confirm this appointment.")
+                return redirect('doctor_dashboard')
+        except Doctor.DoesNotExist:
+            messages.error(request, "You must be a registered doctor to perform this action.")
+            return redirect('doctor_dashboard')
+
+        if appointment.status == 'pending':
+            appointment.status = 'confirmed'
+            appointment.save()
+            messages.success(request, f"Appointment with {appointment.patient.username} on {appointment.appointment_date} confirmed.")
+        else:
+            messages.warning(request, "Only pending appointments can be confirmed.")
+        return redirect('doctor_dashboard')
+    else:
+        raise Http404("Only POST requests are allowed for this action.")
+
+
+@login_required
+def cancel_appointment(request, appointment_id):
+    """
+    Allows a doctor (or potentially patient later) to cancel an appointment.
+    """
+    if request.method == 'POST':
+        appointment = get_object_or_404(Appointment, id=appointment_id)
+
+        # Security check: Ensure the logged-in user is the doctor associated with this appointment
+        # Or if it's a patient cancelling their own appointment
+        try:
+            current_doctor = request.user.doctor_login_profile
+            if appointment.doctor != current_doctor:
+                messages.error(request, "You are not authorized to cancel this appointment.")
+                return redirect('doctor_dashboard')
+        except Doctor.DoesNotExist:
+            # If not a doctor, check if it's the patient themselves
+            if appointment.patient != request.user:
+                messages.error(request, "You are not authorized to cancel this appointment.")
+                return redirect('patient_dashboard') # Redirect to patient dashboard if not their appointment
+
+        if appointment.status in ['pending', 'confirmed']: # Can cancel pending or confirmed
+            appointment.status = 'cancelled'
+            appointment.save()
+            messages.success(request, f"Appointment with {appointment.patient.username} on {appointment.appointment_date} has been cancelled.")
+        else:
+            messages.warning(request, "This appointment cannot be cancelled as it is already completed or cancelled.")
+        return redirect('doctor_dashboard')
+    else:
+        raise Http404("Only POST requests are allowed for this action.")

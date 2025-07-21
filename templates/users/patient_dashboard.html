@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dr. {{ doctor.full_name }} - Dashboard - Vaya</title>
+    <title>Patient Dashboard - Vaya</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <style>
         /* General Body & Typography */
@@ -12,7 +12,7 @@
             font-family: 'Roboto', sans-serif;
             line-height: 1.6;
             color: #333;
-            background-color: #f8fcfb; /* Very light subtle green/blue tint */
+            background-color: #f8fcfb;
             display: flex;
             flex-direction: column;
             min-height: 100vh;
@@ -20,7 +20,7 @@
 
         h1, h2, h3 {
             font-family: 'Poppins', sans-serif;
-            color: #1a4a6e; /* Darker blue for headings */
+            color: #1a4a6e;
         }
 
         .container {
@@ -75,7 +75,7 @@
         .dashboard-section {
             flex-grow: 1;
             padding: 40px 0;
-            background-color: #e6f6f2; /* Soft green tint */
+            background-color: #e6f6f2;
         }
 
         .dashboard-header {
@@ -92,7 +92,7 @@
             display: grid;
             grid-template-columns: 1fr 2fr; /* Sidebar and main content */
             gap: 30px;
-            align-items: start; /* Align items to the top */
+            align-items: start;
         }
 
         .sidebar {
@@ -154,7 +154,6 @@
         .appointment-item.confirmed { background-color: #d4edda; border-color: #c3e6cb; } /* Green for confirmed */
         .appointment-item.completed { background-color: #e2e3e5; border-color: #d6d8db; } /* Gray for completed */
         .appointment-item.cancelled { background-color: #f8d7da; border-color: #f5c6cb; } /* Red for cancelled */
-
 
         .appointment-details strong {
             color: #1a4a6e;
@@ -243,8 +242,8 @@
             <nav>
                 <ul class="nav-links">
                     <li><a href="{% url 'landing_page' %}">Home</a></li>
-                    <li><a href="{% url 'doctor_list' %}">For Patients</a></li>
-                    <li><a href="{% url 'doctor_dashboard' %}">For Doctors</a></li> <!-- Link to dashboard -->
+                    <li><a href="{% url 'doctor_list' %}">Find Doctors</a></li>
+                    <li><a href="{% url 'register_clinic' %}">For Doctors</a></li>
                     <li><a href="#">About Us</a></li>
                     <li><a href="#">Contact</a></li>
                     {% if user.is_authenticated %}
@@ -257,101 +256,27 @@
         </div>
     </header>
 
-    <!-- healthcare_app_motihari/templates/doctors/doctor_dashboard.html -->
-
-<!-- ... (head and header sections) ... -->
-
     <section class="dashboard-section">
         <div class="container">
             <div class="dashboard-header">
-                <h1>Welcome, Dr. {{ doctor.full_name }}!</h1>
-                <p>Your Vaya Clinic Dashboard</p>
+                <h1>Welcome, {{ user.username }}!</h1>
+                <p>Your Vaya Patient Dashboard</p>
             </div>
 
             <div class="dashboard-content">
                 <div class="sidebar">
                     <h2>My Profile</h2>
                     <div class="profile-info">
-                        <p><strong>Username:</strong> {{ doctor.user.username }}</p>
-                        <p><strong>Email:</strong> {{ doctor.user.email|default:"Not provided" }}</p>
-                        <p><strong>Clinic Name:</strong> {{ doctor.clinic_name }}</p>
-                        <p><strong>Address:</strong> {{ doctor.clinic_address }}</p>
-                        <p><strong>Contact Phone:</strong> {{ doctor.contact_phone }}</p>
-                        <p><strong>Contact Email:</strong> {{ doctor.contact_email }}</p>
-                        <p><strong>Specialties:</strong>
-                            {% for specialty in doctor.specialties.all %}
-                                {{ specialty.name }}{% if not forloop.last %}, {% endif %}
-                            {% empty %}
-                                N/A
-                            {% endfor %}
-                        </p>
-                        <p><strong>Qualifications:</strong> {{ doctor.qualifications|default:"Not provided" }}</p>
-                        <p><strong>Status:</strong> {% if doctor.is_approved %}Approved{% else %}Pending Approval{% endif %}</p>
-                        <!-- Add an edit profile button later -->
-                        <button class="btn-secondary" style="width: 100%; padding: 10px; margin-top: 20px;">Edit Profile (Coming Soon!)</button>
+                        <p><strong>Username:</strong> {{ user.username }}</p>
+                        <p><strong>Email:</strong> {{ user.email|default:"Not provided" }}</p>
+                        <p><strong>First Name:</strong> {{ user.first_name|default:"Not provided" }}</p>
+                        <p><strong>Last Name:</strong> {{ user.last_name|default:"Not provided" }}</p>
+                        <p><strong>Joined:</strong> {{ user.date_joined|date:"F d, Y" }}</p>
+                        <a href="{% url 'patient_profile_edit' %}" class="btn-secondary" style="width: 100%; padding: 10px; margin-top: 20px; text-align: center;">Edit Profile</a>
                     </div>
                 </div>
-
-                <div class="main-content">
-                    <h2>Upcoming Appointments</h2>
-                    {% if upcoming_appointments %}
-                        <ul class="appointments-list">
-                            {% for appointment in upcoming_appointments %}
-                                <li class="appointment-item {{ appointment.status }}">
-                                    <div class="appointment-details">
-                                        <p><strong>Patient:</strong> {{ appointment.patient.username }}</p>
-                                        <p><strong>Date:</strong> {{ appointment.appointment_date|date:"F d, Y" }}</p>
-                                        <p><strong>Time:</strong> {{ appointment.appointment_time|time:"h:i A" }}</p>
-                                        <p><strong>Status:</strong> {{ appointment.get_status_display }}</p>
-                                        <p><strong>Type:</strong> {{ appointment.get_appointment_type_display }}</p>
-                                        {% if appointment.reason %}<p><strong>Reason:</strong> {{ appointment.reason }}</p>{% endif %}
-                                    </div>
-                                    <div class="appointment-actions">
-                                        {% if appointment.status == 'pending' %}
-                                            <form action="{% url 'confirm_appointment' appointment.id %}" method="post" style="display: inline-block;">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn-primary" style="padding: 8px 15px; font-size: 0.9em; margin-right: 5px;">Confirm</button>
-                                            </form>
-                                        {% endif %}
-                                        {% if appointment.status in ['pending', 'confirmed'] %}
-                                            <form action="{% url 'cancel_appointment' appointment.id %}" method="post" style="display: inline-block;">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn-secondary" style="padding: 8px 15px; font-size: 0.9em; background-color: #dc3545; color: white; border-color: #dc3545;">Cancel</button>
-                                            </form>
-                                        {% endif %}
-                                    </div>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        <p class="no-appointments">No upcoming appointments.</p>
-                    {% endif %}
-
-                    <h2 style="margin-top: 40px;">Past Appointments</h2>
-                    {% if past_appointments %}
-                        <ul class="appointments-list">
-                            {% for appointment in past_appointments %}
-                                <li class="appointment-item {{ appointment.status }}">
-                                    <div class="appointment-details">
-                                        <p><strong>Patient:</strong> {{ appointment.patient.username }}</p>
-                                        <p><strong>Date:</strong> {{ appointment.appointment_date|date:"F d, Y" }}</p>
-                                        <p><strong>Time:</strong> {{ appointment.appointment_time|time:"h:i A" }}</p>
-                                        <p><strong>Status:</strong> {{ appointment.get_status_display }}</p>
-                                        <p><strong>Type:</strong> {{ appointment.get_appointment_type_display }}</p>
-                                        {% if appointment.reason %}<p><strong>Reason:</strong> {{ appointment.reason }}</p>{% endif %}
-                                    </div>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        <p class="no-appointments">No past appointments.</p>
-                    {% endif %}
-                </div>
-            </div>
         </div>
     </section>
-
-<!-- ... (footer section) ... -->
 
     <footer>
         <div class="container">
