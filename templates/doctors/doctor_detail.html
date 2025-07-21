@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dr. {{ doctor.full_name }} - Profile</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .doctor-profile { border: 1px solid #ccc; padding: 20px; border-radius: 8px; max-width: 600px; margin: 0 auto; }
+        .doctor-profile h1 { color: #007bff; }
+        .doctor-profile p { margin-bottom: 10px; }
+        .back-link { margin-top: 20px; display: block; }
+    </style>
+</head>
+<body>
+    <div class="doctor-profile">
+        <h1>Dr. {{ doctor.full_name }}</h1>
+        <p><strong>Specialty:</strong> {{ doctor.specialty.name|default:"N/A" }}</p>
+        <p><strong>Qualifications:</strong> {{ doctor.qualifications|default:"Not provided" }}</p>
+        <p><strong>Clinic Name:</strong> {{ doctor.clinic_name }}</p>
+        <p><strong>Clinic Address:</strong> {{ doctor.clinic_address }}</p>
+        <p><strong>Contact Phone:</strong> {{ doctor.contact_phone }}</p>
+        <p><strong>Contact Email:</strong> {{ doctor.contact_email|default:"Not provided" }}</p>
+
+        {# Placeholder for appointment booking form later #}
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+            <h3>Book an Appointment (Coming Soon!)</h3>
+            <p>This is where the appointment booking form will be integrated.</p>
+        </div>
+    </div>
+    <a href="{% url 'doctor_list' %}" class="back-link">← Back to Doctor List</a>
+</body>
+</html>

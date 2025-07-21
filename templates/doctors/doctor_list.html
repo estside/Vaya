@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find a Doctor in Motihari</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .doctor-card { border: 1px solid #ccc; padding: 15px; margin-bottom: 10px; border-radius: 5px; }
+        .doctor-card h3 { margin-top: 0; color: #007bff; }
+        .search-filter { margin-bottom: 20px; }
+        .search-filter input, .search-filter select, .search-filter button { padding: 8px; margin-right: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Find a Doctor in Motihari</h1>
+
+    <div class="search-filter">
+        <form method="GET" action="{% url 'doctor_list' %}">
+            <input type="text" name="q" placeholder="Search by name" value="{{ current_query|default_if_none:'' }}">
+            <select name="specialty">
+                <option value="">All Specialties</option>
+                {% for specialty in specialties %}
+                    <option value="{{ specialty.name }}" {% if specialty.name == current_specialty %}selected{% endif %}>{{ specialty.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Search / Filter</button>
+        </form>
+    </div>
+
+    {% if doctors %}
+        {% for doctor in doctors %}
+            <div class="doctor-card">
+                <h3>Dr. {{ doctor.full_name }}</h3>
+                <p><strong>Specialty:</strong> {{ doctor.specialty.name|default:"N/A" }}</p>
+                <p><strong>Clinic:</strong> {{ doctor.clinic_name }}</p>
+                <p><strong>Address:</strong> {{ doctor.clinic_address }}</p>
+                <p><strong>Contact:</strong> {{ doctor.contact_phone }}</p>
+                <p><a href="{% url 'doctor_detail' doctor.id %}">View Details</a></p>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No doctors found matching your criteria.</p>
+    {% endif %}
+</body>
+</html>
