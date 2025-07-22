@@ -281,15 +281,27 @@
             <a href="{% url 'landing_page' %}" class="logo">Vaya</a>
             <nav>
                 <ul class="nav-links">
-                    <li><a href="{% url 'landing_page' %}">Home</a></li>
-                    <li><a href="{% url 'doctor_list' %}">Find Doctors</a></li>
-                    <li><a href="#">About Us</a></li>
-                    <li><a href="#">Contact</a></li>
+                    {# Always show Home for unauthenticated users, or if they are on a dashboard #}
+                    {# Removed parentheses here #}
+                    {% if not user.is_authenticated or request.resolver_match.url_name == 'landing_page' %}
+                        <li><a href="{% url 'landing_page' %}">Home</a></li>
+                    {% endif %}
+
+                    {# Show Find Doctors only if not logged in as a doctor #}
+                    {# Removed parentheses here #}
+                    {% if not user.is_authenticated or not user.doctor_login_profile.is_approved %}
+                        <li><a href="{% url 'doctor_list' %}">Find Doctors</a></li>
+                    {% endif %}
+
+                    <li><a href="{% url 'about_us' %}">About Us</a></li>
+                   
                     {% if user.is_authenticated %}
-                        {# Check if the user has a doctor profile and it's approved #}
+                        {# If authenticated, show relevant dashboard link and Logout #}
+                        {# Removed parentheses here #}
                         {% if user.doctor_login_profile and user.doctor_login_profile.is_approved %}
                             <li><a href="{% url 'doctor_dashboard' %}">Doctor Dashboard</a></li>
                         {# Check if the user has a doctor profile but it's NOT approved #}
+                        {# Removed parentheses here #}
                         {% elif user.doctor_login_profile and not user.doctor_login_profile.is_approved %}
                             <li><a href="{% url 'landing_page' %}">Profile Pending</a></li> {# Or a specific 'pending' page #}
                         {# If authenticated but no doctor profile (i.e., a patient) #}
@@ -298,6 +310,7 @@
                         {% endif %}
                         <li><a href="{% url 'logout' %}">Logout ({{ user.username }})</a></li>
                     {% else %}
+                        {# If not authenticated, show For Doctors and Login #}
                         <li><a href="{% url 'register_clinic' %}">For Doctors</a></li>
                         <li><a href="{% url 'login' %}">Login</a></li>
                     {% endif %}
@@ -323,10 +336,8 @@
             <a href="{% url 'landing_page' %}" class="logo">Vaya</a>
             <ul class="footer-links">
                 <li><a href="{% url 'landing_page' %}">Home</a></li>
-                <li><a href="#">About Us</a></li>
-                <li><a href="#">Contact Us</a></li>
-                <li><a href="#">Privacy Policy</a></li>
-                <li><a href="#">Terms of Service</a></li>
+                <li><a href="{% url 'about_us' %}">About Us</a></li>
+                
             </ul>
             <p>&copy; 2025 Vaya. All rights reserved.</p>
         </div>

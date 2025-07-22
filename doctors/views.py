@@ -73,45 +73,7 @@ from django.contrib.auth.decorators import login_required # Import login_require
 
 # ... (existing doctor_list, doctor_detail, register_clinic, clinic_registration_success views) ...
 
-@login_required # Ensures only logged-in users can access this view
-def doctor_dashboard(request):
-    """
-    Displays the dashboard for a logged-in doctor.
-    Shows their profile and a list of their appointments.
-    """
-    try:
-        # Attempt to get the Doctor profile linked to the logged-in user
-        # The 'doctor_login_profile' is the related_name from CustomUser to Doctor
-        doctor = request.user.doctor_login_profile
-        # Check if the doctor profile is approved
-        if not doctor.is_approved:
-            messages.warning(request, "Your doctor profile is pending approval. Please wait for an administrator to approve it.")
-            # Redirect to a generic page or back to homepage if not approved
-            return redirect('landing_page') # Or a specific 'pending_approval' page
 
-    except Doctor.DoesNotExist:
-        # If the logged-in user is not linked to a Doctor profile
-        messages.error(request, "You are not registered as a doctor, or your profile is incomplete. Please register your clinic.")
-        return redirect('register_clinic') # Redirect to clinic registration
-
-    # Fetch appointments for this doctor
-    # Order by appointment date and time
-    upcoming_appointments = Appointment.objects.filter(
-        doctor=doctor,
-        status__in=['pending', 'confirmed'] # Only show pending/confirmed appointments
-    ).order_by('appointment_date', 'appointment_time')
-
-    past_appointments = Appointment.objects.filter(
-        doctor=doctor,
-        status__in=['completed', 'cancelled'] # Show completed/cancelled appointments
-    ).order_by('-appointment_date', '-appointment_time') # Order by most recent first
-
-    context = {
-        'doctor': doctor,
-        'upcoming_appointments': upcoming_appointments,
-        'past_appointments': past_appointments,
-    }
-    return render(request, 'doctors/doctor_dashboard.html', context)
 # healthcare_app_motihari/doctors/views.py
 
 from django.shortcuts import render, redirect, get_object_or_404
@@ -323,56 +285,6 @@ def doctor_upload_report(request, patient_id):
     return render(request, 'doctors/report_upload_form.html', context) # Reusing the same template
 # healthcare_app_motihari/users/views.py
 
-from django.shortcuts import render, redirect
-from django.urls import reverse
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from doctors.models import Doctor, Appointment, Report # Import Report model
-from .forms import PatientSignUpForm
-
-# ... (existing custom_login_redirect and patient_signup views) ...
-
-@login_required
-def patient_dashboard(request):
-    """
-    Displays the dashboard for a logged-in patient.
-    Shows their profile and a list of their appointments and reports.
-    """
-    user = request.user
-
-    # Check if the logged-in user is actually a doctor.
-    try:
-        doctor_profile = Doctor.objects.get(user=user)
-        if doctor_profile.is_approved:
-            return redirect('doctor_dashboard')
-        else:
-            messages.warning(request, "Your doctor profile is pending approval. Please wait for an administrator to approve it.")
-            return redirect('landing_page')
-    except Doctor.DoesNotExist:
-        pass # This user is not a doctor, proceed as patient
-
-    # Fetch appointments for this patient
-    upcoming_appointments = Appointment.objects.filter(
-        patient=user,
-        status__in=['pending', 'confirmed']
-    ).order_by('appointment_date', 'appointment_time')
-
-    past_appointments = Appointment.objects.filter(
-        patient=user,
-        status__in=['completed', 'cancelled']
-    ).order_by('-appointment_date', '-appointment_time')
-
-    # --- NEW: Fetch reports for this patient ---
-    patient_reports = Report.objects.filter(patient=user).order_by('-uploaded_at')
-    # -------------------------------------------
-
-    context = {
-        'user': user,
-        'upcoming_appointments': upcoming_appointments,
-        'past_appointments': past_appointments,
-        'patient_reports': patient_reports, # <--- Add reports to context
-    }
-    return render(request, 'users/patient_dashboard.html', context)
 # healthcare_app_motihari/doctors/views.py
 
 from django.shortcuts import render, redirect, get_object_or_404
@@ -383,6 +295,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from users.models import CustomUser
+from django.db.models import Q # <--- Import Q object for complex queries
 
 # ... (existing views) ...
 
@@ -411,20 +324,67 @@ def doctor_dashboard(request):
         status__in=['completed', 'cancelled']
     ).order_by('-appointment_date', '-appointment_time')
 
-    # --- NEW: Fetch reports for this doctor ---
-    # Get IDs of patients who have appointments with this doctor
+    # --- FIX/CONFIRMATION: Fetch reports for this doctor ---
+    # Fetch reports where:
+    # 1. The logged-in doctor is the uploader (report.doctor = current_doctor)
+    # OR
+    # 2. The patient associated with the report has an appointment with this doctor.
+    #    We need to get all patient IDs that have appointments with this doctor first.
+
+    # Get IDs of patients who have ever had an appointment with this doctor
     patient_ids_with_appointments = Appointment.objects.filter(doctor=doctor).values_list('patient__id', flat=True).distinct()
 
-    # Fetch reports uploaded by this doctor OR reports belonging to their patients
     doctor_relevant_reports = Report.objects.filter(
-        models.Q(doctor=doctor) | models.Q(patient__id__in=patient_ids_with_appointments)
+        Q(doctor=doctor) | Q(patient__id__in=patient_ids_with_appointments)
     ).order_by('-uploaded_at').distinct() # Use distinct to avoid duplicates if a report matches both Q objects
-    # ------------------------------------------
+    # --------------------------------------------------------
 
     context = {
         'doctor': doctor,
         'upcoming_appointments': upcoming_appointments,
         'past_appointments': past_appointments,
-        'doctor_relevant_reports': doctor_relevant_reports, # <--- Add reports to context
+        'doctor_relevant_reports': doctor_relevant_reports, # Ensure this is passed to context
     }
     return render(request, 'doctors/doctor_dashboard.html', context)
+# healthcare_app_motihari/doctors/views.py
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
+from .models import Doctor, Specialty, Appointment, Report
+from .forms import ClinicRegistrationForm, PatientSignUpForm, AppointmentBookingForm, ReportUploadForm
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import Http404
+from users.models import CustomUser
+from django.db.models import Q
+
+# ... (existing views: doctor_list, doctor_detail, doctor_dashboard, book_appointment, appointment_success,
+#      confirm_appointment, cancel_appointment, patient_upload_report, doctor_upload_report) ...
+
+def register_clinic(request):
+    if request.method == 'POST':
+        form = ClinicRegistrationForm(request.POST)
+        if form.is_valid():
+            try:
+                doctor = form.save()
+                messages.success(request, 'Your clinic registration has been submitted successfully! We will review your details soon and notify you via email.')
+                # --- CHANGE HERE: Re-render the form with a new, empty instance ---
+                form = ClinicRegistrationForm() # Create a new, empty form instance to clear the form
+                # ------------------------------------------------------------------
+            except Exception as e:
+                messages.error(request, f'An error occurred during registration: {e}')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = ClinicRegistrationForm()
+
+    context = {
+        'form': form,
+        'specialties': Specialty.objects.all() # Pass all specialties for the template
+    }
+    return render(request, 'doctors/clinic_registration_form.html', context)
+
+# --- REMOVE OR COMMENT OUT THIS VIEW if you want to show message on same page ---
+# def clinic_registration_success(request):
+#     return render(request, 'doctors/clinic_registration_success.html')
+# ------------------------------------------------------------------------------

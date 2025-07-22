@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}About Us - Vaya{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* About Us Specific Styles */
+    .about-section {
+        flex-grow: 1;
+        padding: 60px 0;
+        background-color: #e6f6f2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .about-card {
+        background-color: #fff;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        width: 100%;
+        max-width: 800px;
+        text-align: center; /* Center content within the card */
+    }
+
+    .about-card h1 {
+        font-size: 2.8em;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 10px;
+        display: inline-block; /* To make border-bottom fit content */
+    }
+
+    .about-card p {
+        font-size: 1.1em;
+        line-height: 1.8;
+        margin-bottom: 20px;
+        color: #555;
+        text-align: left; /* Align paragraphs to left */
+    }
+
+    .about-card ul {
+        list-style: none;
+        padding: 0;
+        margin-top: 30px;
+        text-align: center;
+    }
+
+    .about-card ul li {
+        display: inline-block;
+        margin: 0 15px;
+        font-size: 1.1em;
+        font-weight: 600;
+        color: #1a4a6e;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .about-section {
+            padding: 40px 0;
+        }
+        .about-card {
+            padding: 25px;
+            margin: 0 15px;
+        }
+        .about-card h1 {
+            font-size: 2em;
+        }
+        .about-card p {
+            font-size: 1em;
+        }
+        .about-card ul li {
+            display: block;
+            margin: 10px 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <section class="about-section">
+        <div class="container">
+            <div class="about-card">
+                <h1>About Vaya</h1>
+                <p>Welcome to Vaya, your dedicated healthcare companion designed to bridge the gap between patients and trusted private clinics in smaller towns across India, starting with Motihari, Bihar.</p>
+
+                <p>Our mission is to simplify the healthcare journey by providing a seamless platform where you can easily:</p>
+                <ul>
+                    <li>&#10003; Discover local doctors and clinics.</li>
+                    <li>&#10003; Book appointments instantly, anytime, anywhere.</li>
+                    <li>&#10003; Manage your health records digitally.</li>
+                    <li>&#10003; Get smart recommendations for your health needs.</li>
+                </ul>
+
+                <p>Vaya was founded on the belief that quality healthcare should be accessible and convenient for everyone, regardless of their location. We understand the unique dynamics of healthcare in smaller communities, where personal relationships with doctors are paramount. Our platform aims to enhance these relationships with the power of digital tools, making it easier for patients to find the right care and for doctors to manage their practice efficiently.</p>
+
+                <p>We are committed to maintaining the highest standards of data privacy and security, ensuring your personal health information is always protected. Join us in building a healthier, more connected community.</p>
+
+                <p style="margin-top: 30px; font-style: italic;">Vaya: Connecting You to Care, Right Where You Are.</p>
+            </div>
+        </div>
+    </section>
+{% endblock %}
