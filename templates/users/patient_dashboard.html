@@ -156,10 +156,14 @@
                         <p><strong>Email:</strong> {{ user.email|default:"Not provided" }}</p>
                         <p><strong>First Name:</strong> {{ user.first_name|default:"Not provided" }}</p>
                         <p><strong>Last Name:</strong> {{ user.last_name|default:"Not provided" }}</p>
+                        <p><strong>Phone Number:</strong> {{ user.phone_number|default:"Not provided" }}</p>
+                        <p><strong>Date of Birth:</strong> {{ user.date_of_birth|default:"Not provided" }}</p>
+                        <p><strong>Gender:</strong> {{ user.get_gender_display|default:"Not provided" }}</p>
                         <p><strong>Joined:</strong> {{ user.date_joined|date:"F d, Y" }}</p>
                         <a href="{% url 'patient_profile_edit' %}" class="btn-secondary">Edit Profile</a>
                     </div>
                     <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+                    
                     <h2>My Reports</h2>
                     <p style="font-size: 0.9em; color: #666;">View and manage your medical reports.</p>
                     <a href="{% url 'patient_upload_report' %}" class="btn-primary">Upload New Report</a>
@@ -199,13 +203,17 @@
                                         <p><strong>Doctor:</strong> Dr. {{ appointment.doctor.full_name }}</p>
                                         <p><strong>Clinic:</strong> {{ appointment.doctor.clinic_name }}</p>
                                         <p><strong>Date:</strong> {{ appointment.appointment_date|date:"F d, Y" }}</p>
-                                        <p><strong>Time:</strong> {{ appointment.appointment_time|time:"h:i A" }}</p>
+                                        <p><strong>Time:</strong>
+                                            {{ appointment.appointment_time|time:"h:i A" }}
+                                            {% if appointment.appointment_slot %}
+                                                - {{ appointment.appointment_slot.end_time|time:"h:i A" }}
+                                            {% endif %}
+                                        </p>
                                         <p><strong>Status:</strong> {{ appointment.get_status_display }}</p>
                                         <p><strong>Type:</strong> {{ appointment.get_appointment_type_display }}</p>
                                         {% if appointment.reason %}<p><strong>Reason:</strong> {{ appointment.reason }}</p>{% endif %}
                                     </div>
                                     <div class="appointment-actions">
-                                        {# Add Cancel button for patient here #}
                                         {% if appointment.status == 'pending' or appointment.status == 'confirmed' %}
                                             <form action="{% url 'cancel_appointment' appointment.id %}" method="post" style="display: inline-block;">
                                                 {% csrf_token %}
@@ -229,7 +237,12 @@
                                         <p><strong>Doctor:</strong> Dr. {{ appointment.doctor.full_name }}</p>
                                         <p><strong>Clinic:</strong> {{ appointment.doctor.clinic_name }}</p>
                                         <p><strong>Date:</strong> {{ appointment.appointment_date|date:"F d, Y" }}</p>
-                                        <p><strong>Time:</strong> {{ appointment.appointment_time|time:"h:i A" }}</p>
+                                        <p><strong>Time:</strong>
+                                            {{ appointment.appointment_time|time:"h:i A" }}
+                                            {% if appointment.appointment_slot %}
+                                                - {{ appointment.appointment_slot.end_time|time:"h:i A" }}
+                                            {% endif %}
+                                        </p>
                                         <p><strong>Status:</strong> {{ appointment.get_status_display }}</p>
                                         <p><strong>Type:</strong> {{ appointment.get_appointment_type_display }}</p>
                                         {% if appointment.reason %}<p><strong>Reason:</strong> {{ appointment.reason }}</p>{% endif %}

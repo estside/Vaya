@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+
+{% block title %}AI Symptom Checker - Vaya{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Symptom Checker Specific Styles */
+    .symptom-checker-section {
+        flex-grow: 1;
+        padding: 60px 0;
+        background-color: #e6f6f2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .checker-card {
+        background-color: #fff;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        width: 100%;
+        max-width: 800px;
+        text-align: center;
+    }
+
+    .checker-card h2 {
+        font-size: 2.2em;
+        margin-bottom: 30px;
+    }
+
+    .ai-response-box {
+        background-color: #f0f8ff; /* Light blue background */
+        border: 1px solid #cceeff;
+        border-left: 5px solid #007bff; /* Blue left border */
+        padding: 20px;
+        margin-top: 30px;
+        border-radius: 8px;
+        text-align: left;
+    }
+
+    .ai-response-box h3 {
+        color: #007bff;
+        margin-top: 0;
+        font-size: 1.5em;
+    }
+
+    .ai-response-box p {
+        margin-bottom: 10px;
+        color: #333;
+    }
+
+    .ai-response-box ul {
+        list-style: disc;
+        padding-left: 20px;
+        margin-top: 10px;
+    }
+
+    .ai-response-box ul li {
+        margin-bottom: 5px;
+    }
+
+    .disclaimer {
+        font-size: 0.9em;
+        color: #dc3545; /* Red for warning */
+        font-weight: 500;
+        margin-top: 20px;
+        text-align: center;
+    }
+
+    .recommended-doctors-section {
+        margin-top: 40px;
+        text-align: left;
+    }
+
+    .recommended-doctors-section h3 {
+        font-size: 1.8em;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #1a4a6e;
+        padding-bottom: 10px;
+    }
+
+    .doctor-card {
+        background-color: #f9f9f9;
+        border: 1px solid #eee;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .doctor-card h4 {
+        margin: 0;
+        color: #007bff;
+        font-size: 1.2em;
+    }
+
+    .doctor-card p {
+        margin: 0;
+        color: #555;
+    }
+
+    .doctor-card strong {
+        color: #1a4a6e;
+    }
+
+    .doctor-card a {
+        display: inline-block;
+        margin-top: 10px;
+        padding: 8px 15px;
+        background-color: #007bff;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+    }
+    .doctor-card a:hover {
+        background-color: #0056b3;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .symptom-checker-section {
+            padding: 40px 0;
+        }
+        .checker-card {
+            padding: 25px;
+            margin: 0 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <section class="symptom-checker-section">
+        <div class="container">
+            <div class="checker-card">
+                <h2>AI Symptom Checker & Doctor Recommendation</h2>
+                <p>Describe your symptoms below, and our AI will suggest relevant medical specialties and recommend local doctors.</p>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="{{ form.symptoms.id_for_label }}">{{ form.symptoms.label }}</label>
+                        {{ form.symptoms }}
+                        {% if form.symptoms.errors %}<p class="errorlist">{{ form.symptoms.errors }}</p>{% endif %}
+                    </div>
+                    {% if form.non_field_errors %}
+                        <ul class="errorlist">
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                    <button type="submit" class="btn-primary">Get Recommendations</button>
+                </form>
+
+                {% if ai_response_text %}
+                    <div class="ai-response-box">
+                        <h3>AI Understanding:</h3>
+                        <p>{{ ai_response_text }}</p>
+                        {% if ai_suggested_specialties %}
+                            <p><strong>Suggested Specialties:</strong></p>
+                            <ul>
+                                {% for specialty in ai_suggested_specialties %}
+                                    <li>{{ specialty }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        <p class="disclaimer">
+                            <strong>Disclaimer:</strong> This AI provides general information and suggestions based on your input. It is NOT a substitute for professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare professional for any health concerns.
+                        </p>
+                    </div>
+                {% endif %}
+
+                {% if recommended_doctors %}
+                    <div class="recommended-doctors-section">
+                        <h3>Recommended Doctors for You:</h3>
+                        {% for doctor in recommended_doctors %}
+                            <div class="doctor-card">
+                                <h4>Dr. {{ doctor.full_name }}</h4>
+                                <p><strong>Specialties:</strong>
+                                    {% for specialty in doctor.specialties.all %}
+                                        {{ specialty.name }}{% if not forloop.last %}, {% endif %}
+                                    {% empty %}
+                                        N/A
+                                    {% endfor %}
+                                </p>
+                                <p><strong>Clinic:</strong> {{ doctor.clinic_name }}</p>
+                                <p><strong>Address:</strong> {{ doctor.clinic_address }}</p>
+                                <p><strong>Contact:</strong> {{ doctor.contact_phone }}</p>
+                                <a href="{% url 'doctor_detail' doctor.id %}" class="btn-primary" style="padding: 8px 15px; font-size: 0.9em;">View Details & Book</a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% elif ai_response_text and not recommended_doctors %}
+                     <p style="margin-top: 20px; color: #777;">No specific doctors found for the suggested specialties in your area, but you can still browse all doctors.</p>
+                     <a href="{% url 'doctor_list' %}" class="btn-secondary" style="margin-top: 10px;">Browse All Doctors</a>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+{% endblock %}

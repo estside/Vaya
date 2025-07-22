@@ -17,4 +17,6 @@ urlpatterns = [
     # --- NEW URL for Doctor Profile Edit ---
     path('profile/edit/', views.doctor_profile_edit, name='doctor_profile_edit'),
     # ---------------------------------------
+     path('slots/', views.doctor_slot_management, name='doctor_slot_management'),
+    # 
 ]

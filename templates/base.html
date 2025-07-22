@@ -307,6 +307,7 @@
                         {# If authenticated but no doctor profile (i.e., a patient) #}
                         {% else %}
                             <li><a href="{% url 'patient_dashboard' %}">Patient Dashboard</a></li>
+                            <li><a href="{% url 'symptom_checker' %}">AI Assistant</a></li>
                         {% endif %}
                         <li><a href="{% url 'logout' %}">Logout ({{ user.username }})</a></li>
                     {% else %}

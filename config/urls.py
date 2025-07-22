@@ -12,6 +12,7 @@ urlpatterns = [
     path('accounts/', include('users.urls')),
     path('', config_views.landing_page, name='landing_page'),
     path('about_us/', config_views.about_us, name='about_us'), # <--- NEW URL for About Us
+    path('ai/', include('ai_assistant.urls')),
 ]
 
 if settings.DEBUG:

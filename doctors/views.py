@@ -523,4 +523,187 @@ def book_appointment(request, doctor_id):
         'doctor': doctor,
         'form': form,
     }
+# healthcare_app_motihari/doctors/views.py
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
+from .models import Doctor, Specialty, Appointment, Report, DoctorSlot # Import DoctorSlot
+from .forms import ClinicRegistrationForm, PatientSignUpForm, AppointmentBookingForm, ReportUploadForm, DoctorProfileEditForm, DoctorSlotForm # Import DoctorSlotForm
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import Http404
+from users.models import CustomUser
+from django.db.models import Q
+import datetime
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.conf import settings
+
+# ... (existing views) ...
+
+@login_required
+def doctor_slot_management(request):
+    """
+    Allows a logged-in doctor to manage their available time slots.
+    """
+    try:
+        doctor = request.user.doctor_login_profile
+        if not doctor.is_approved:
+            messages.warning(request, "Your doctor profile is pending approval. You cannot manage slots until approved.")
+            return redirect('doctor_dashboard')
+    except Doctor.DoesNotExist:
+        messages.error(request, "You are not registered as a doctor.")
+        return redirect('register_clinic')
+
+    if request.method == 'POST':
+        form = DoctorSlotForm(request.POST)
+        if form.is_valid():
+            slot = form.save(commit=False)
+            slot.doctor = doctor # Link the slot to the logged-in doctor
+            try:
+                slot.save()
+                messages.success(request, f"New slot created: {slot.date} {slot.start_time}-{slot.end_time}.")
+                return redirect('doctor_slot_management') # Redirect to refresh the list
+            except Exception as e: # Catch potential unique_together errors
+                messages.error(request, f"Error creating slot: {e}. (Perhaps an overlapping slot already exists?)")
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = DoctorSlotForm()
+
+    # Fetch existing slots for this doctor, ordered by date and time
+    existing_slots = DoctorSlot.objects.filter(doctor=doctor).order_by('date', 'start_time')
+
+    context = {
+        'form': form,
+        'existing_slots': existing_slots,
+        'doctor': doctor, # Pass doctor for template context
+    }
+    return render(request, 'doctors/doctor_slot_management.html', context)
+# healthcare_app_motihari/doctors/views.py
+
+# ... (imports) ...
+
+@login_required
+def book_appointment(request, doctor_id):
+    doctor = get_object_or_404(Doctor, id=doctor_id, is_approved=True)
+
+    # --- FIX STARTS HERE ---
+    # Check if the logged-in user is a doctor. If so, redirect them.
+    # This block needs to ensure it always returns if the condition is met.
+    try:
+        # Attempt to get the doctor profile for the logged-in user
+        logged_in_doctor_profile = request.user.doctor_login_profile
+        # If the user is a doctor, they should not use this form to book appointments for themselves
+        messages.error(request, "Doctors cannot book appointments for themselves using this form.")
+        return redirect('doctor_dashboard') # Always return a redirect if they are a doctor
+    except Doctor.DoesNotExist:
+        # This means the logged-in user does not have a doctor_login_profile,
+        # so they are a patient or a general user. Proceed with booking.
+        pass
+    # --- FIX ENDS HERE ---
+
+
+    if request.method == 'POST':
+        form = AppointmentBookingForm(request.POST)
+        if form.is_valid():
+            appointment_date = form.cleaned_data.get('appointment_date')
+            appointment_time = form.cleaned_data.get('appointment_time')
+
+            if doctor.working_days and doctor.start_time and doctor.end_time:
+                day_of_week_full = appointment_date.strftime('%A')
+                is_working_day = False
+                if 'Mon-Fri' in doctor.working_days and appointment_date.weekday() < 5:
+                    is_working_day = True
+                elif 'Sat-Sun' in doctor.working_days and appointment_date.weekday() >= 5:
+                    is_working_day = True
+                elif day_of_week_full in doctor.working_days.split(','):
+                    is_working_day = True
+                elif appointment_date.strftime('%a') in doctor.working_days.split(','):
+                    is_working_day = True
+
+
+                if not is_working_day:
+                    messages.error(request, f"Dr. {doctor.full_name} does not typically work on {day_of_week_full}s.")
+                    return render(request, 'doctors/book_appointment.html', {'doctor': doctor, 'form': form})
+
+                if not (doctor.start_time <= appointment_time <= doctor.end_time):
+                    messages.error(request, f"Dr. {doctor.full_name} is available between {doctor.start_time.strftime('%I:%M %p')} and {doctor.end_time.strftime('%I:%M %p')}.")
+                    return render(request, 'doctors/book_appointment.html', {'doctor': doctor, 'form': form})
+            else:
+                messages.warning(request, "Doctor's specific working hours are not set. Your request will be manually reviewed.")
+
+            appointment = form.save(commit=False)
+            appointment.patient = request.user
+            appointment.doctor = doctor
+            appointment.save()
+
+            messages.success(request, f"Your appointment with Dr. {doctor.full_name} on {appointment.appointment_date} at {appointment.appointment_time} has been requested. It is currently pending confirmation.")
+            return redirect('appointment_success')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else: # This block handles GET requests or invalid POST submissions
+        form = AppointmentBookingForm()
+
+    context = {
+        'doctor': doctor,
+        'form': form,
+    }
     return render(request, 'doctors/book_appointment.html', context)
+# healthcare_app_motihari/doctors/views.py
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
+from .models import Doctor, Specialty, Appointment, Report, DoctorSlot # Import DoctorSlot
+from .forms import ClinicRegistrationForm, PatientSignUpForm, AppointmentBookingForm, ReportUploadForm, DoctorProfileEditForm, DoctorSlotForm # Import DoctorSlotForm
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import Http404
+from users.models import CustomUser
+from django.db.models import Q
+import datetime
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.conf import settings
+
+# ... (existing views) ...
+
+@login_required
+def doctor_slot_management(request):
+    """
+    Allows a logged-in doctor to manage their available time slots.
+    """
+    try:
+        doctor = request.user.doctor_login_profile
+        if not doctor.is_approved:
+            messages.warning(request, "Your doctor profile is pending approval. You cannot manage slots until approved.")
+            return redirect('doctor_dashboard')
+    except Doctor.DoesNotExist:
+        messages.error(request, "You are not registered as a doctor.")
+        return redirect('register_clinic')
+
+    if request.method == 'POST':
+        form = DoctorSlotForm(request.POST)
+        if form.is_valid():
+            slot = form.save(commit=False)
+            slot.doctor = doctor # Link the slot to the logged-in doctor
+            try:
+                slot.save()
+                messages.success(request, f"New slot created: {slot.date} {slot.start_time}-{slot.end_time}.")
+                return redirect('doctor_slot_management') # Redirect to refresh the list
+            except Exception as e: # Catch potential unique_together errors
+                messages.error(request, f"Error creating slot: {e}. (Perhaps an overlapping slot already exists?)")
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = DoctorSlotForm()
+
+    # Fetch existing slots for this doctor, ordered by date and time
+    existing_slots = DoctorSlot.objects.filter(doctor=doctor).order_by('date', 'start_time')
+
+    context = {
+        'form': form,
+        'existing_slots': existing_slots,
+        'doctor': doctor, # Pass doctor for template context
+    }
+    return render(request, 'doctors/doctor_slot_management.html', context)

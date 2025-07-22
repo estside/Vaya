@@ -64,18 +64,57 @@
                 <form method="post">
                     {% csrf_token %}
 
-                    {% for field in form %}
-                        <div class="form-group">
-                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                            {{ field }}
-                            {% if field.help_text %}
-                                <small class="help-text">{{ field.help_text }}</small>
-                            {% endif %}
-                            {% for error in field.errors %}
-                                <p class="errorlist">{{ error }}</p>
-                            {% endfor %}
-                        </div>
-                    {% endfor %}
+                    {# Render username and password fields first #}
+                    <div class="form-group">
+                        <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+                        {{ form.username }}
+                        {% for error in form.username.errors %}<p class="errorlist">{{ error }}</p>{% endfor %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                        {{ form.email }}
+                        {% for error in form.email.errors %}<p class="errorlist">{{ error }}</p>{% endfor %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+                        {{ form.password }}
+                        {% for error in form.password.errors %}<p class="errorlist">{{ error }}</p>{% endfor %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>
+                        {{ form.password2 }}
+                        {% for error in form.password2.errors %}<p class="errorlist">{{ error }}</p>{% endfor %}
+                    </div>
+
+                    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
+                    <h3>Personal Details (Optional)</h3>
+
+                    {# Render new fields #}
+                    <div class="form-group">
+                        <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+                        {{ form.first_name }}
+                        {% for error in form.first_name.errors %}<p class="errorlist">{{ error }}</p>{% endfor %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+                        {{ form.last_name }}
+                        {% for error in form.last_name.errors %}<p class="errorlist">{{ error }}</p>{% endfor %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.phone_number.id_for_label }}">{{ form.phone_number.label }}</label>
+                        {{ form.phone_number }}
+                        {% for error in form.phone_number.errors %}<p class="errorlist">{{ error }}</p>{% endfor %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.date_of_birth.id_for_label }}">{{ form.date_of_birth.label }}</label>
+                        {{ form.date_of_birth }}
+                        {% for error in form.date_of_birth.errors %}<p class="errorlist">{{ error }}</p>{% endfor %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.gender.id_for_label }}">{{ form.gender.label }}</label>
+                        {{ form.gender }}
+                        {% for error in form.gender.errors %}<p class="errorlist">{{ error }}</p>{% endfor %}
+                    </div>
 
                     {% if form.non_field_errors %}
                         <ul class="errorlist">

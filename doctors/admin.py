@@ -47,3 +47,19 @@ class ReportAdmin(admin.ModelAdmin):
     search_fields = ('title', 'patient__username', 'doctor__full_name', 'description')
     raw_id_fields = ('patient', 'doctor') # Use raw ID input for ForeignKey fields for better performance
 # --- NEW REPORT ADMIN ENDS HERE ---
+# healthcare_app_motihari/doctors/admin.py
+
+from django.contrib import admin
+from .models import Specialty, Doctor, Appointment, Report, DoctorSlot # Import DoctorSlot
+
+# ... (SpecialtyAdmin, DoctorAdmin, AppointmentAdmin, ReportAdmin definitions) ...
+
+# --- NEW DOCTOR SLOT ADMIN STARTS HERE ---
+@admin.register(DoctorSlot)
+class DoctorSlotAdmin(admin.ModelAdmin):
+    list_display = ('doctor', 'date', 'start_time', 'end_time', 'is_available')
+    list_filter = ('is_available', 'date', 'doctor')
+    search_fields = ('doctor__full_name',)
+    date_hierarchy = 'date'
+    raw_id_fields = ('doctor',) # Use raw ID input for ForeignKey
+# --- NEW DOCTOR SLOT ADMIN ENDS HERE ---

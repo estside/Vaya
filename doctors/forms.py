@@ -274,3 +274,117 @@ class DoctorProfileEditForm(forms.ModelForm):
         if start_time and end_time and start_time >= end_time:
             self.add_error('end_time', "End time must be after start time.")
         return cleaned_data
+# healthcare_app_motihari/doctors/forms.py
+
+from django import forms
+# ... (existing imports) ...
+# Ensure DoctorSlot is imported
+from .models import Doctor, Specialty, Appointment, Report, DoctorSlot
+
+# ... (PatientSignUpForm, ClinicRegistrationForm, AppointmentBookingForm, PatientProfileEditForm, ReportUploadForm definitions) ...
+
+# --- NEW DOCTOR SLOT FORM STARTS HERE ---
+class DoctorSlotForm(forms.ModelForm):
+    class Meta:
+        model = DoctorSlot
+        fields = ['date', 'start_time', 'end_time', 'is_available']
+        labels = {
+            'date': 'Date',
+            'start_time': 'Start Time',
+            'end_time': 'End Time',
+            'is_available': 'Mark as Available',
+        }
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'start_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'end_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        date = cleaned_data.get('date')
+        start_time = cleaned_data.get('start_time')
+        end_time = cleaned_data.get('end_time')
+
+        if date and date < datetime.date.today():
+            self.add_error('date', "Cannot create slots for a past date.")
+
+        if start_time and end_time:
+            if start_time >= end_time:
+                self.add_error('end_time', "End time must be after start time.")
+            # Optional: Add validation for minimum slot duration (e.g., 15 minutes)
+            # if (datetime.datetime.combine(date, end_time) - datetime.datetime.combine(date, start_time)).total_seconds() < 900: # 15 mins
+            #     self.add_error('end_time', "Slot must be at least 15 minutes long.")
+
+        return cleaned_data
+# --- NEW DOCTOR SLOT FORM ENDS HERE ---
+# healthcare_app_motihari/doctors/forms.py
+
+from django import forms
+# ... (existing imports) ...
+from .models import Doctor, Specialty, Appointment, Report, DoctorSlot # Ensure DoctorSlot is imported
+import datetime
+
+# ... (PatientSignUpForm, ClinicRegistrationForm, PatientProfileEditForm, ReportUploadForm definitions) ...
+
+# --- MODIFIED APPOINTMENT BOOKING FORM STARTS HERE ---
+class AppointmentBookingForm(forms.ModelForm):
+    # This field will be dynamically populated in the view
+    # It will represent the DoctorSlot chosen by the patient
+    available_slot = forms.ModelChoiceField(
+        queryset=DoctorSlot.objects.none(), # Initial queryset is empty, will be set in view
+        empty_label="--- Select an available slot ---",
+        label="Available Appointment Slot",
+        widget=forms.Select(attrs={'class': 'form-control'}) # Apply a class for styling
+    )
+
+    class Meta:
+        model = Appointment
+        # Remove appointment_date and appointment_time as they come from available_slot
+        fields = ['reason', 'appointment_type']
+        labels = {
+            'reason': 'Reason for Appointment (Optional)',
+            'appointment_type': 'Appointment Type'
+        }
+        widgets = {
+            'reason': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Briefly describe your reason for visit'}),
+            'appointment_type': forms.Select(attrs={'class': 'form-control'})
+        }
+
+    # Custom constructor to filter available_slot queryset based on the doctor
+    def __init__(self, *args, **kwargs):
+        doctor = kwargs.pop('doctor', None) # Pop the doctor instance from kwargs
+        super().__init__(*args, **kwargs)
+
+        if doctor:
+            # Filter available slots for this specific doctor
+            # Only show slots that are available and in the future
+            now = datetime.datetime.now()
+            # Combine date and time for comparison
+            # Filter out slots that are entirely in the past
+            future_available_slots = DoctorSlot.objects.filter(
+                doctor=doctor,
+                is_available=True,
+                date__gte=now.date() # Slots on or after today
+            ).order_by('date', 'start_time')
+
+            # Further filter out slots that are in the past today
+            current_time = now.time()
+            # Filter out slots where date is today AND end_time is in the past
+            future_available_slots = [
+                slot for slot in future_available_slots
+                if not (slot.date == now.date() and slot.end_time <= current_time)
+            ]
+
+            # Convert the filtered list back to a queryset for ModelChoiceField
+            self.fields['available_slot'].queryset = DoctorSlot.objects.filter(id__in=[s.id for s in future_available_slots])
+
+            # Optional: Customize the display of each slot in the dropdown
+            self.fields['available_slot'].label_from_instance = lambda obj: f"{obj.date.strftime('%B %d, %Y')} - {obj.start_time.strftime('%I:%M %p')} to {obj.end_time.strftime('%I:%M %p')}"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        # No need for date/time validation here, as it's handled by selecting an existing slot.
+        # The selected slot itself implicitly means it's a future, valid time.
+        return cleaned_data
+# --- MODIFIED APPOINTMENT BOOKING FORM ENDS HERE ---

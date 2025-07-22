@@ -58,17 +58,13 @@
                 <form method="post">
                     {% csrf_token %}
 
+                    {# --- MODIFIED FIELDS HERE --- #}
                     <div class="form-group">
-                        <label for="{{ form.appointment_date.id_for_label }}">Preferred Date <span style="color: red;">*</span></label>
-                        {{ form.appointment_date }}
-                        {% if form.appointment_date.errors %}<small class="errorlist">{{ form.appointment_date.errors }}</small>{% endif %}
+                        <label for="{{ form.available_slot.id_for_label }}">Select an Available Slot <span style="color: red;">*</span></label>
+                        {{ form.available_slot }}
+                        {% if form.available_slot.errors %}<small class="errorlist">{{ form.available_slot.errors }}</small>{% endif %}
                     </div>
-
-                    <div class="form-group">
-                        <label for="{{ form.appointment_time.id_for_label }}">Preferred Time <span style="color: red;">*</span></label>
-                        {{ form.appointment_time }}
-                        {% if form.appointment_time.errors %}<small class="errorlist">{{ form.appointment_time.errors }}</small>{% endif %}
-                    </div>
+                    {# --- END MODIFIED FIELDS --- #}
 
                     <div class="form-group">
                         <label for="{{ form.reason.id_for_label }}">Reason for Appointment (Optional)</label>

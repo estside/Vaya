@@ -121,3 +121,39 @@ class Report(models.Model):
     class Meta:
         ordering = ['-uploaded_at'] # Most recent reports first
 # --- NEW REPORT MODEL ENDS HERE ---
+# healthcare_app_motihari/doctors/models.py
+
+from django.db import models
+from users.models import CustomUser
+import datetime # Import datetime for default values if needed
+
+# ... (Specialty, Doctor, Appointment, Report models - these should already be there) ...
+
+# --- NEW DOCTOR SLOT MODEL STARTS HERE ---
+class DoctorSlot(models.Model):
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='available_slots')
+    date = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    is_available = models.BooleanField(default=True) # Can be set to false if a slot is manually blocked
+    # Optional: type of slot (e.g., "consultation", "procedure", "break")
+    # slot_type = models.CharField(max_length=50, blank=True, null=True)
+
+    class Meta:
+        # A doctor cannot have overlapping slots for the same date
+        unique_together = ('doctor', 'date', 'start_time', 'end_time')
+        ordering = ['date', 'start_time']
+
+    def __str__(self):
+        return f"Dr. {self.doctor.full_name} - {self.date} {self.start_time}-{self.end_time} ({'Available' if self.is_available else 'Blocked'})"
+
+    # You might add a method here to check if a given appointment fits this slot
+    def is_slot_available_for_appointment(self, appointment_date, appointment_time):
+        if not self.is_available:
+            return False
+        if self.date != appointment_date:
+            return False
+        if not (self.start_time <= appointment_time < self.end_time): # Appointment time must be within slot
+            return False
+        return True
+# --- NEW DOCTOR SLOT MODEL ENDS HERE ---

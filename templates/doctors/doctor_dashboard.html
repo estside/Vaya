@@ -225,7 +225,6 @@
                         </p>
                         <p><strong>Qualifications:</strong> {{ doctor.qualifications|default:"Not provided" }}</p>
                         <p><strong>Status:</strong> {% if doctor.is_approved %}Approved{% else %}Pending Approval{% endif %}</p>
-                        <!-- Display Availability -->
                         <p><strong>Working Days:</strong> {{ doctor.working_days|default:"Not set" }}</p>
                         <p><strong>Working Hours:</strong>
                             {% if doctor.start_time and doctor.end_time %}
@@ -234,9 +233,12 @@
                                 Not set
                             {% endif %}
                         </p>
-                        <!-- Link to edit profile -->
                         <a href="{% url 'doctor_profile_edit' %}" class="btn-secondary" style="width: 100%; padding: 10px; margin-top: 20px; text-align: center;">Edit Profile</a>
                     </div>
+                    <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+                    <h2>Schedule Management</h2>
+                    <p style="font-size: 0.9em; color: #666;">Define your available time slots.</p>
+                    <a href="{% url 'doctor_slot_management' %}" class="btn-primary" style="width: 100%; padding: 10px; margin-top: 10px; text-align: center;">Manage Slots</a>
                     <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
                     <h2>Patient Reports</h2>
                     <p style="font-size: 0.9em; color: #666;">Reports from your patients or uploaded by you.</p>

@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Slots - Dr. {{ doctor.full_name }} - Vaya{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Reusing form styles from other pages */
+    .slot-management-section {
+        flex-grow: 1;
+        padding: 40px 0;
+        background-color: #e6f6f2;
+    }
+    .slot-management-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+    .slot-management-header h1 {
+        font-size: 2.8em;
+        margin-bottom: 10px;
+    }
+    .slot-form-card {
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        max-width: 600px;
+        margin: 0 auto 40px auto; /* Center and add bottom margin */
+        text-align: center;
+    }
+    .slot-form-card h2 {
+        font-size: 2em;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 10px;
+        display: inline-block;
+    }
+
+    /* Existing Slots List */
+    .existing-slots-list {
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    .existing-slots-list h2 {
+        font-size: 2em;
+        margin-top: 0;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #1a4a6e;
+        padding-bottom: 10px;
+        text-align: center;
+    }
+    .slot-item {
+        background-color: #f9f9f9;
+        border: 1px solid #eee;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .slot-details strong {
+        color: #1a4a6e;
+    }
+    .slot-item.unavailable {
+        background-color: #f8d7da; /* Red tint for unavailable */
+        border-color: #f5c6cb;
+        opacity: 0.8;
+    }
+    .slot-actions {
+        margin-left: 15px;
+        white-space: nowrap;
+    }
+    .slot-actions button {
+        padding: 8px 15px;
+        font-size: 0.9em;
+        margin-left: 5px;
+        box-shadow: none;
+    }
+    .no-slots {
+        text-align: center;
+        color: #777;
+        padding: 20px;
+        border: 1px dashed #ccc;
+        border-radius: 5px;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .slot-management-section {
+            padding: 20px 0;
+        }
+        .slot-form-card, .existing-slots-list {
+            padding: 20px;
+            margin: 0 15px 30px 15px;
+        }
+        .slot-form-card h2, .existing-slots-list h2 {
+            font-size: 1.8em;
+        }
+        .slot-item {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .slot-actions {
+            margin-top: 10px;
+            margin-left: 0;
+            width: 100%;
+            text-align: center;
+        }
+        .slot-actions button {
+            margin-left: 0;
+            margin-bottom: 5px;
+            width: calc(100% - 10px);
+            display: block;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <section class="slot-management-section">
+        <div class="container">
+            <div class="slot-management-header">
+                <h1>Manage Your Availability Slots</h1>
+                <p>Dr. {{ doctor.full_name }}</p>
+            </div>
+
+            <div class="slot-form-card">
+                <h2>Create New Slot</h2>
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="form-group">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <small class="help-text">{{ field.help_text }}</small>
+                            {% endif %}
+                            {% for error in field.errors %}
+                                <p class="errorlist">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                    {% if form.non_field_errors %}
+                        <ul class="errorlist">
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                    <button type="submit" class="btn-primary">Add Slot</button>
+                </form>
+            </div>
+
+            <div class="existing-slots-list">
+                <h2>Existing Slots</h2>
+                {% if existing_slots %}
+                    <ul class="slot-list">
+                        {% for slot in existing_slots %}
+                            <li class="slot-item {% if not slot.is_available %}unavailable{% endif %}">
+                                <div class="slot-details">
+                                    <p><strong>Date:</strong> {{ slot.date|date:"F d, Y" }}</p>
+                                    <p><strong>Time:</strong> {{ slot.start_time|time:"h:i A" }} - {{ slot.end_time|time:"h:i A" }}</p>
+                                    <p><strong>Status:</strong> {% if slot.is_available %}Available{% else %}Blocked{% endif %}</p>
+                                </div>
+                                <div class="slot-actions">
+                                    {# Add actions like Edit/Delete slot later #}
+                                    <button class="btn-secondary" style="padding: 8px 15px; font-size: 0.9em;">Edit (Soon!)</button>
+                                    <button class="btn-danger" style="padding: 8px 15px; font-size: 0.9em;">Delete (Soon!)</button>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="no-slots">No slots defined yet. Use the form above to add your first slot!</p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+{% endblock %}
