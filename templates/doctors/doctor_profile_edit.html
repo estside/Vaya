@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Doctor Profile - Vaya{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Reusing most styles from registration/login forms for consistency */
+    .profile-edit-section {
+        flex-grow: 1;
+        padding: 60px 0;
+        background-color: #e6f6f2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .profile-edit-card {
+        background-color: #fff;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        width: 100%;
+        max-width: 650px; /* Slightly wider for doctor profile */
+        text-align: center;
+    }
+    .profile-edit-card h2 {
+        font-size: 2.2em;
+        margin-bottom: 30px;
+    }
+    .help-text {
+        font-size: 0.9em;
+        color: #666;
+        margin-top: 15px;
+    }
+    .help-text a {
+        color: #007bff;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    /* Specific styling for checkbox select multiple for specialties */
+    .form-group ul.checkbox-select-multiple {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+    }
+    .form-group ul.checkbox-select-multiple li {
+        display: flex;
+        align-items: center;
+        background-color: #f0f0f0;
+        padding: 8px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+    .form-group ul.checkbox-select-multiple li:hover {
+        background-color: #e0e0e0;
+    }
+    .form-group ul.checkbox-select-multiple input[type="checkbox"] {
+        margin-right: 8px;
+        cursor: pointer;
+    }
+    .form-group ul.checkbox-select-multiple label {
+        margin-bottom: 0;
+        cursor: pointer;
+        font-weight: normal; /* Override default label bold */
+        display: inline; /* Keep label next to checkbox */
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .profile-edit-section {
+            padding: 40px 0;
+        }
+        .profile-edit-card {
+            padding: 25px;
+            margin: 0 15px;
+        }
+        .form-group ul.checkbox-select-multiple {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <section class="profile-edit-section">
+        <div class="container">
+            <div class="profile-edit-card">
+                <h2>Edit Doctor Profile: Dr. {{ doctor.full_name }}</h2>
+                <p>Update your clinic details, qualifications, and availability.</p>
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    {% for field in form %}
+                        <div class="form-group">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {% if field.name == 'specialties' %}
+                                {# Render ManyToManyField checkboxes manually for better styling control #}
+                                <ul class="checkbox-select-multiple">
+                                    {% for choice in field %}
+                                        <li>
+                                            {{ choice.tag }}
+                                            <label for="{{ choice.id_for_label }}">{{ choice.choice_label }}</label>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                {{ field }}
+                            {% endif %}
+                            {% if field.help_text %}
+                                <small class="help-text">{{ field.help_text }}</small>
+                            {% endif %}
+                            {% for error in field.errors %}
+                                <p class="errorlist">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+
+                    {% if form.non_field_errors %}
+                        <ul class="errorlist">
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                </form>
+
+                <div class="help-text">
+                    <p><a href="{% url 'doctor_dashboard' %}">Back to Doctor Dashboard</a></p>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

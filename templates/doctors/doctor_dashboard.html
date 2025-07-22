@@ -225,8 +225,17 @@
                         </p>
                         <p><strong>Qualifications:</strong> {{ doctor.qualifications|default:"Not provided" }}</p>
                         <p><strong>Status:</strong> {% if doctor.is_approved %}Approved{% else %}Pending Approval{% endif %}</p>
-                        <!-- Add an edit profile button later -->
-                        <button class="btn-secondary" style="width: 100%; padding: 10px; margin-top: 20px;">Edit Profile (Coming Soon!)</button>
+                        <!-- Display Availability -->
+                        <p><strong>Working Days:</strong> {{ doctor.working_days|default:"Not set" }}</p>
+                        <p><strong>Working Hours:</strong>
+                            {% if doctor.start_time and doctor.end_time %}
+                                {{ doctor.start_time|time:"h:i A" }} - {{ doctor.end_time|time:"h:i A" }}
+                            {% else %}
+                                Not set
+                            {% endif %}
+                        </p>
+                        <!-- Link to edit profile -->
+                        <a href="{% url 'doctor_profile_edit' %}" class="btn-secondary" style="width: 100%; padding: 10px; margin-top: 20px; text-align: center;">Edit Profile</a>
                     </div>
                     <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
                     <h2>Patient Reports</h2>

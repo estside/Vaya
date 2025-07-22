@@ -388,3 +388,139 @@ def register_clinic(request):
 # def clinic_registration_success(request):
 #     return render(request, 'doctors/clinic_registration_success.html')
 # ------------------------------------------------------------------------------
+# healthcare_app_motihari/doctors/views.py
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
+from .models import Doctor, Specialty, Appointment, Report
+from .forms import ClinicRegistrationForm, PatientSignUpForm, AppointmentBookingForm, ReportUploadForm, DoctorProfileEditForm # Import new form
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import Http404
+from users.models import CustomUser
+from django.db.models import Q
+
+# ... (existing views) ...
+
+@login_required
+def doctor_profile_edit(request):
+    """
+    Allows a logged-in doctor to edit their profile information and availability.
+    """
+    try:
+        doctor = request.user.doctor_login_profile
+        if not doctor.is_approved:
+            messages.warning(request, "Your doctor profile is pending approval. You cannot edit it until approved.")
+            return redirect('doctor_dashboard') # Or landing_page
+    except Doctor.DoesNotExist:
+        messages.error(request, "You are not registered as a doctor.")
+        return redirect('register_clinic')
+
+    if request.method == 'POST':
+        form = DoctorProfileEditForm(request.POST, instance=doctor)
+        if form.is_valid():
+            # Save the Doctor instance
+            doctor_instance = form.save(commit=False)
+            doctor_instance.save() # Save the doctor's non-M2M fields
+            form.save_m2m() # Save the ManyToManyField (specialties)
+            messages.success(request, 'Your profile has been updated successfully!')
+            return redirect('doctor_dashboard') # Redirect back to doctor dashboard
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = DoctorProfileEditForm(instance=doctor) # Pre-populate form with current doctor data
+
+    context = {
+        'form': form,
+        'doctor': doctor, # Pass doctor object for template title/context
+    }
+    return render(request, 'doctors/doctor_profile_edit.html', context)
+# healthcare_app_motihari/doctors/views.py
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
+from .models import Doctor, Specialty, Appointment, Report
+from .forms import ClinicRegistrationForm, PatientSignUpForm, AppointmentBookingForm, ReportUploadForm, DoctorProfileEditForm # Ensure DoctorProfileEditForm is imported
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import Http404
+from users.models import CustomUser
+from django.db.models import Q
+import datetime # Ensure datetime is imported
+
+# ... (existing views) ...
+
+@login_required
+def book_appointment(request, doctor_id):
+    doctor = get_object_or_404(Doctor, id=doctor_id, is_approved=True)
+
+    try:
+        if request.user.doctor_login_profile:
+            messages.error(request, "Doctors cannot book appointments for themselves using this form.")
+            return redirect('doctor_dashboard')
+    except Doctor.DoesNotExist:
+        pass
+
+    if request.method == 'POST':
+        form = AppointmentBookingForm(request.POST)
+        if form.is_valid():
+            appointment_date = form.cleaned_data.get('appointment_date')
+            appointment_time = form.cleaned_data.get('appointment_time')
+
+            # --- NEW: Check Doctor's Availability ---
+            # Basic check: Is the requested day one of the doctor's working days?
+            # And is the time within their working hours?
+            if doctor.working_days and doctor.start_time and doctor.end_time:
+                # Convert working_days string to a list of day names (e.g., "Mon-Fri" -> ["Monday", "Tuesday", ...])
+                # This is a very basic parsing. For production, consider a more robust system.
+                # For simplicity, let's assume working_days is comma-separated like "Monday,Tuesday" or "Mon-Fri"
+                # A more robust solution would involve a dedicated parsing function or a better model field.
+
+                # Let's assume working_days is a comma-separated list of 3-letter day abbreviations (e.g., "Mon,Tue,Wed")
+                # Or a simple string like "Mon-Fri"
+                # For this MVP, we'll do a simple check.
+                day_of_week_abbr = appointment_date.strftime('%a') # e.g., 'Mon', 'Tue'
+                day_of_week_full = appointment_date.strftime('%A') # e.g., 'Monday', 'Tuesday'
+
+                is_working_day = False
+                if doctor.working_days:
+                    # Simple check for common patterns or comma-separated list
+                    if 'Mon-Fri' in doctor.working_days and appointment_date.weekday() < 5: # 0=Mon, 4=Fri
+                        is_working_day = True
+                    elif 'Sat-Sun' in doctor.working_days and appointment_date.weekday() >= 5: # 5=Sat, 6=Sun
+                        is_working_day = True
+                    elif day_of_week_abbr in doctor.working_days or day_of_week_full in doctor.working_days:
+                        is_working_day = True
+                    elif ',' in doctor.working_days and day_of_week_abbr in doctor.working_days.split(','):
+                        is_working_day = True
+                    # Add more sophisticated parsing if working_days format is complex
+
+                if not is_working_day:
+                    messages.error(request, f"Dr. {doctor.full_name} does not typically work on {day_of_week_full}s.")
+                    return render(request, 'doctors/book_appointment.html', {'doctor': doctor, 'form': form})
+
+                if not (doctor.start_time <= appointment_time <= doctor.end_time):
+                    messages.error(request, f"Dr. {doctor.full_name} is available between {doctor.start_time.strftime('%I:%M %p')} and {doctor.end_time.strftime('%I:%M %p')}.")
+                    return render(request, 'doctors/book_appointment.html', {'doctor': doctor, 'form': form})
+            else:
+                # If doctor has not set availability, optionally warn or allow
+                messages.warning(request, "Doctor's specific working hours are not set. Your request will be manually reviewed.")
+            # --- END NEW: Check Doctor's Availability ---
+
+            appointment = form.save(commit=False)
+            appointment.patient = request.user
+            appointment.doctor = doctor
+            appointment.save()
+
+            messages.success(request, f"Your appointment with Dr. {doctor.full_name} on {appointment.appointment_date} at {appointment.appointment_time} has been requested. It is currently pending confirmation.")
+            return redirect('appointment_success')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = AppointmentBookingForm()
+
+    context = {
+        'doctor': doctor,
+        'form': form,
+    }
+    return render(request, 'doctors/book_appointment.html', context)

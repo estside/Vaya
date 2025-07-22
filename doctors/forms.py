@@ -220,4 +220,57 @@ class ReportUploadForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Brief description or notes about the report.'}),
         }
 # --- NEW REPORT UPLOAD FORM ENDS HERE ---
+# healthcare_app_motihari/doctors/forms.py
 
+from django import forms
+from .models import Doctor, Specialty, Appointment, Report
+from users.models import CustomUser
+from django.contrib.auth.forms import UserCreationForm
+import datetime
+
+# ... (PatientSignUpForm, ClinicRegistrationForm, AppointmentBookingForm, ReportUploadForm definitions) ...
+
+# --- NEW: DoctorProfileEditForm ---
+class DoctorProfileEditForm(forms.ModelForm):
+    # This form will allow doctors to edit their profile, including specialties and availability
+    specialties = forms.ModelMultipleChoiceField(
+        queryset=Specialty.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label="Main Specialties Offered"
+    )
+
+    class Meta:
+        model = Doctor
+        fields = [
+            'full_name', 'clinic_name', 'clinic_address', 'contact_phone',
+            'contact_email', 'qualifications', 'specialties',
+            'working_days', 'start_time', 'end_time' # Include new availability fields
+        ]
+        labels = {
+            'full_name': 'Full Name',
+            'clinic_name': 'Clinic Name',
+            'clinic_address': 'Clinic Address',
+            'contact_phone': 'Contact Phone Number',
+            'contact_email': 'Contact Email',
+            'qualifications': 'Qualifications',
+            'working_days': 'Working Days',
+            'start_time': 'Daily Start Time',
+            'end_time': 'Daily End Time',
+        }
+        widgets = {
+            'clinic_address': forms.Textarea(attrs={'rows': 3}),
+            'qualifications': forms.Textarea(attrs={'rows': 3}),
+            'start_time': forms.TimeInput(attrs={'type': 'time'}), # HTML5 time input
+            'end_time': forms.TimeInput(attrs={'type': 'time'}),   # HTML5 time input
+        }
+
+    # You might want to add custom clean methods here for time validation (e.g., end_time after start_time)
+    def clean(self):
+        cleaned_data = super().clean()
+        start_time = cleaned_data.get('start_time')
+        end_time = cleaned_data.get('end_time')
+
+        if start_time and end_time and start_time >= end_time:
+            self.add_error('end_time', "End time must be after start time.")
+        return cleaned_data

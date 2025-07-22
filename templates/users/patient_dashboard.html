@@ -107,11 +107,17 @@
         text-align: center;
         box-shadow: none; /* Remove extra shadow for sidebar buttons */
     }
-    .main-content .btn-primary {
+    .appointment-actions .btn-primary,
+    .appointment-actions .btn-danger,
+    .appointment-actions .btn-success {
         padding: 8px 15px;
         font-size: 0.9em;
         margin-top: 0; /* Override default margin-top */
         box-shadow: none;
+        margin-right: 5px; /* Spacing between buttons */
+    }
+    .appointment-actions form {
+        display: inline-block; /* Keep forms inline with buttons */
     }
 
 
@@ -131,63 +137,6 @@
             align-items: flex-start;
         }
     }
-    .report-list {
-        list-style: none;
-        padding: 0;
-    }
-    .report-item {
-        background-color: #f9f9f9;
-        border: 1px solid #eee;
-        padding: 15px;
-        margin-bottom: 10px;
-        border-radius: 5px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap; /* Allow wrapping on small screens */
-    }
-    .report-details {
-        flex-grow: 1;
-    }
-    .report-details p {
-        margin: 0;
-    }
-    .report-actions {
-        margin-left: 15px;
-        white-space: nowrap; /* Prevent buttons from wrapping */
-    }
-    .report-actions a {
-        padding: 8px 15px;
-        font-size: 0.9em;
-        margin-left: 5px;
-        text-decoration: none;
-        border-radius: 5px;
-    }
-    .report-actions .btn-download {
-        background-color: #007bff;
-        color: white;
-    }
-    .report-actions .btn-download:hover {
-        background-color: #0056b3;
-    }
-    /* Responsive adjustment for report items */
-    @media (max-width: 768px) {
-        .report-item {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-        .report-actions {
-            margin-top: 10px;
-            margin-left: 0;
-            width: 100%;
-            text-align: center;
-        }
-        .report-actions a {
-            margin-left: 0;
-            margin-bottom: 5px;
-            width: calc(100% - 10px); /* Adjust for padding */
-            display: block;
-        }}
 </style>
 {% endblock %}
 
@@ -223,7 +172,6 @@
                                         <p><strong>Title:</strong> {{ report.title }}</p>
                                         <p><strong>Date:</strong> {{ report.report_date|default:"N/A" }}</p>
                                         <p><strong>Uploaded:</strong> {{ report.uploaded_at|date:"F d, Y H:i" }}</p>
-                                        {% if report.description %}<p><strong>Description:</strong> {{ report.description }}</p>{% endif %}
                                         {% if report.doctor %}<p><strong>Uploaded by:</strong> Dr. {{ report.doctor.full_name }}</p>{% endif %}
                                     </div>
                                     <div class="report-actions">
@@ -257,8 +205,13 @@
                                         {% if appointment.reason %}<p><strong>Reason:</strong> {{ appointment.reason }}</p>{% endif %}
                                     </div>
                                     <div class="appointment-actions">
-                                        <!-- Add action buttons later (e.g., Cancel) -->
-                                        <button class="btn-primary" style="padding: 8px 15px; font-size: 0.9em;">Manage (Soon!)</button>
+                                        {# Add Cancel button for patient here #}
+                                        {% if appointment.status == 'pending' or appointment.status == 'confirmed' %}
+                                            <form action="{% url 'cancel_appointment' appointment.id %}" method="post" style="display: inline-block;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn-danger" style="padding: 8px 15px; font-size: 0.9em;">Cancel</button>
+                                            </form>
+                                        {% endif %}
                                     </div>
                                 </li>
                             {% endfor %}

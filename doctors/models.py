@@ -12,6 +12,13 @@ class Specialty(models.Model):
     def __str__(self):
         return self.name
 
+# healthcare_app_motihari/doctors/models.py
+
+from django.db import models
+from users.models import CustomUser
+
+# ... (Specialty, Doctor, Appointment, Report models) ...
+
 class Doctor(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='doctor_login_profile')
     full_name = models.CharField(max_length=200)
@@ -23,12 +30,25 @@ class Doctor(models.Model):
     qualifications = models.TextField(blank=True, null=True)
     is_approved = models.BooleanField(default=False)
 
+    # --- NEW: Doctor Availability Fields ---
+    working_days = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="E.g., Mon-Fri, Mon,Wed,Fri, or All Weekends"
+    )
+    start_time = models.TimeField(blank=True, null=True)
+    end_time = models.TimeField(blank=True, null=True)
+    # ---------------------------------------
+
     def __str__(self):
         specialty_names = ", ".join([s.name for s in self.specialties.all()])
         return f"Dr. {self.full_name} ({specialty_names})"
 
     class Meta:
         ordering = ['full_name']
+
+# ... (Appointment, Report models) ...
 
 # --- NEW APPOINTMENT MODEL STARTS HERE ---
 class Appointment(models.Model):
