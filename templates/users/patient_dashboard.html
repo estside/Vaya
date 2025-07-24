@@ -219,6 +219,7 @@
                                                 {% csrf_token %}
                                                 <button type="submit" class="btn-danger" style="padding: 8px 15px; font-size: 0.9em;">Cancel</button>
                                             </form>
+                                            <a href="{% url 'chat_room' appointment.id %}" class="btn-primary" style="padding: 8px 15px; font-size: 0.9em; margin-left: 5px;">Chat</a>
                                         {% endif %}
                                     </div>
                                 </li>

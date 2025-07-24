@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+
+{% block title %}Chat with {{ other_user }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .chat-container {
+        max-width: 800px;
+        margin: 20px auto;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+        min-height: 70vh; /* Ensure it takes up enough vertical space */
+        max-height: 85vh; /* Limit max height to allow scrolling */
+        overflow: hidden; /* Hide overflow for the container itself */
+    }
+    .chat-header {
+        background-color: #1a4a6e; /* Darker blue from your theme */
+        color: white;
+        padding: 15px;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        font-size: 1.4em;
+        font-weight: 600;
+        text-align: center;
+    }
+    .chat-messages {
+        flex-grow: 1;
+        padding: 20px;
+        overflow-y: auto; /* Enable scrolling for messages */
+        border-bottom: 1px solid #eee;
+        background-color: #e6f6f2; /* Soft background for chat area */
+        display: flex; /* Use flexbox to align messages */
+        flex-direction: column; /* Stack messages vertically */
+    }
+    .message {
+        margin-bottom: 10px;
+        padding: 10px 15px;
+        border-radius: 18px; /* More rounded corners */
+        max-width: 75%; /* Limit message bubble width */
+        word-wrap: break-word;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.08); /* Subtle shadow for bubbles */
+    }
+    .message.sent {
+        background-color: #d4edda; /* Success green for sent messages */
+        align-self: flex-end; /* Align to the right */
+        margin-left: auto; /* Push to the right */
+        border-bottom-right-radius: 5px; /* Sharpen bottom right corner */
+    }
+    .message.received {
+        background-color: #f0f8ff; /* Light blue for received messages */
+        align-self: flex-start; /* Align to the left */
+        margin-right: auto; /* Push to the left */
+        border-bottom-left-radius: 5px; /* Sharpen bottom left corner */
+    }
+    .message-sender {
+        font-weight: bold;
+        font-size: 0.9em;
+        margin-bottom: 3px;
+        color: #007bff; /* Vaya blue for sender name */
+    }
+    .message.sent .message-sender {
+        color: #155724; /* Darker green for sent sender */
+    }
+    .message-content {
+        font-size: 1em;
+        color: #333;
+    }
+    .message-timestamp {
+        font-size: 0.75em;
+        color: #888;
+        text-align: right;
+        margin-top: 5px;
+    }
+    .chat-input {
+        padding: 15px;
+        border-top: 1px solid #eee;
+        display: flex;
+        gap: 10px;
+        background-color: #fdfdfd;
+    }
+    .chat-input textarea {
+        flex-grow: 1;
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 25px; /* Rounded input field */
+        resize: none;
+        min-height: 45px; /* Ensure minimum height */
+        font-size: 1em;
+        box-sizing: border-box;
+        transition: border-color 0.3s ease;
+    }
+    .chat-input textarea:focus {
+        border-color: #007bff;
+        outline: none;
+    }
+    .chat-input button {
+        padding: 12px 25px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 25px; /* Rounded button */
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .chat-input button:hover {
+        background-color: #0056b3;
+        transform: translateY(-1px);
+    }
+</style>
+
+<div class="chat-container">
+    <div class="chat-header">
+        Chat with {% if other_user %}{{ other_user }}{% else %}Unknown User{% endif %}
+    </div>
+    <div class="chat-messages" id="chat-log">
+        {% for message in messages %}
+            <div class="message {% if message.sender == request.user %}sent{% else %}received{% endif %}">
+                <div class="message-sender">{{ message.sender.username }}</div>
+                <div class="message-content">{{ message.content }}</div>
+                <div class="message-timestamp">{{ message.timestamp|date:"H:i A, M d" }}</div>
+            </div>
+        {% endfor %}
+    </div>
+    <div class="chat-input">
+        <textarea id="chat-message-input" placeholder="Type your message..." rows="1"></textarea>
+        <button id="chat-message-submit">Send</button>
+    </div>
+</div>
+
+<script>
+    // Get the appointment ID from the Django context
+    const appointmentId = {{ appointment.id }};
+    const chatLog = document.querySelector('#chat-log');
+    const messageInput = document.querySelector('#chat-message-input');
+    const messageSubmit = document.querySelector('#chat-message-submit');
+    const currentUser = "{{ request.user.username }}"; // Get current user's username for distinguishing messages
+
+    // Determine WebSocket protocol (wss for HTTPS, ws for HTTP)
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    // Construct the WebSocket URL
+    const chatSocket = new WebSocket(
+        protocol + '//' + window.location.host + '/ws/chat/' + appointmentId + '/'
+    );
+
+    // Event listener for incoming messages from the WebSocket
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        const message = data['message'];
+        // *** FIX 1: Read 'sender' key as sent from consumer ***
+        const senderUsername = data['sender']; //
+        const timestampStr = data['timestamp']; //
+
+        // Create a new Date object from the timestamp string
+        const timestamp = new Date(timestampStr);
+
+        let formattedTime = 'Invalid Date';
+        // Check if the date parsing was successful before formatting
+        if (!isNaN(timestamp.getTime())) {
+            // Format the time (e.g., "01:45 PM")
+            const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
+            const timePart = timestamp.toLocaleTimeString([], timeOptions);
+
+            // Format the date (e.g., "Jul 24")
+            const dateOptions = { month: 'short', day: 'numeric' };
+            const datePart = timestamp.toLocaleDateString('en-US', dateOptions);
+
+            formattedTime = `${timePart}, ${datePart}`; // Combine: "01:45 PM, Jul 24"
+        } else {
+            console.error("Invalid timestamp received from WebSocket:", timestampStr);
+        }
+
+        // Create message HTML element
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('message');
+        // Add 'sent' or 'received' class based on sender
+        messageDiv.classList.add(senderUsername === currentUser ? 'sent' : 'received');
+
+        messageDiv.innerHTML = `
+            <div class="message-sender">${senderUsername}</div>
+            <div class="message-content">${message}</div>
+            <div class="message-timestamp">${formattedTime}</div>
+        `;
+        chatLog.appendChild(messageDiv);
+        chatLog.scrollTop = chatLog.scrollHeight; // Scroll to bottom to show latest message
+    };
+
+    // Event listener for WebSocket closing
+    chatSocket.onclose = function(e) {
+        console.error('Chat socket closed unexpectedly:', e);
+        // Optionally, display a message to the user that chat is disconnected
+    };
+
+    // Event listener for WebSocket errors
+    chatSocket.onerror = function(e) {
+        console.error('Chat socket error:', e);
+        // Optionally, display an error message to the user
+    };
+
+    // Focus on the message input field when the page loads
+    messageInput.focus();
+
+    // Handle sending message on Enter key press (but not Shift+Enter for new line)
+    messageInput.onkeyup = function(e) {
+        if (e.keyCode === 13 && !e.shiftKey) {
+            e.preventDefault(); // Prevent default Enter behavior (new line)
+            messageSubmit.click(); // Trigger send button click
+        }
+    };
+
+    // Handle sending message on button click
+    messageSubmit.onclick = function(e) {
+        const message = messageInput.value.trim();
+        if (message) {
+            // Send message content as JSON over WebSocket
+            chatSocket.send(JSON.stringify({
+                'message': message
+            }));
+            messageInput.value = ''; // Clear input field
+            messageInput.style.height = '45px'; // Reset height
+        }
+    };
+
+    // Auto-resize textarea based on content
+    messageInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    });
+
+
+    // Scroll to bottom on initial load to show latest messages
+    window.onload = function() {
+        chatLog.scrollTop = chatLog.scrollHeight;
+    };
+
+</script>
+{% endblock %}

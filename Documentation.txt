@@ -1,339 +1,562 @@
 Vaya: Your Local Healthcare Connection
 1. Project Overview
-Project Name: Vaya
-Tagline: Connecting You to Care, Right Where You Are.
-Vision: To simplify healthcare access for patients in smaller towns by connecting them directly with trusted private clinics and doctors, offering digital convenience for appointments and records, and leveraging AI for smart doctor recommendations.
+Project Name: Vaya 
 
-Current Stage: Web App MVP (Minimum Viable Product) with foundational features for clinic/doctor registration and patient-side doctor discovery.
+Tagline: Connecting You to Care, Right Where You Are. 
 
-Key Features (Current MVP):
+Vision: Vaya aims to simplify healthcare access for patients in smaller towns like Motihari, Bihar, by directly connecting them with trusted private clinics and doctors. It offers digital convenience for appointments and records and leverages AI for smart doctor recommendations. 
 
-Clinic/Doctor Registration Form: A web form for private clinics/doctors to submit their details to Vaya. This creates a CustomUser account for the doctor and a linked Doctor profile.
+Current Stage: The project is an MVP (Minimum Viable Product) web application, establishing foundational features for clinic/doctor registration, patient-side doctor discovery, and an AI-powered symptom checker. 
 
-Doctor Profile Management (Admin): Django Admin interface for Vaya administrators (superusers or specifically permitted staff) to manage (add, edit, approve) doctor and specialty profiles. Doctors are is_approved=False by default upon registration, requiring admin activation.
+Key Features (Implemented in MVP):
 
-Patient-facing Doctor Listing: A public web page where patients can view approved doctors, filter by specialty, and search by name.
+Clinic/Doctor Registration Form: A web form allowing private clinics/doctors to submit their details to Vaya. This process automatically creates a 
 
-Basic Digital Report Placeholder: A conceptual space for future patient report uploads/downloads.
+CustomUser account for the doctor and a linked Doctor profile. By default, doctors are 
 
-Custom User Model: A flexible user authentication system (CustomUser) that extends Django's default, allowing for future expansion with patient and doctor-specific fields.
+is_approved=False upon registration, requiring administrator activation.
 
-AI-ready Foundation: The project structure is set up to allow for future integration of AI-powered recommendation systems.
+Doctor Profile Management (Admin Panel): Vaya administrators (superusers or permitted staff) can manage (add, edit, approve) doctor and specialty profiles through the Django Admin interface. This includes linking doctors to 
+
+CustomUser accounts and setting their is_approved status.
+
+
+Patient-facing Doctor Listing: A public web page where patients can view approved doctors, with search functionality by name and filtering by specialty.
+
+
+Custom User Model: A flexible CustomUser model extends Django's AbstractUser, allowing for additional patient-specific fields (phone_number, date_of_birth, gender) and serving as the base for all user accounts (admins, patients, doctors).
+
+
+AI-Powered Symptom Checker & Doctor Recommendation: An integrated feature allowing users to input symptoms. The system then uses the Groq API (Llama3 model) to provide a general understanding, suggest relevant medical specialties, and recommend approved doctors from the database based on these specialties. It includes disclaimers and handles non-medical queries gracefully. 
+
+Appointment Booking System: Patients can view a specific doctor's available DoctorSlots and book appointments. The system prevents double-booking and manages the availability of slots. Doctors can confirm or cancel pending appointments. 
+
+Patient Dashboard: A personalized dashboard for patients to view their profile, upcoming and past appointments, and access their uploaded medical reports.
+
+Doctor Dashboard/Portal: A dedicated dashboard for approved doctors to manage their profile, view/manage their specific DoctorSlots, see upcoming and past appointments, and view/upload relevant patient reports. 
+
+Digital Report Management: Allows patients to upload their own medical reports and doctors to upload reports for specific patients. Reports can be downloaded from respective dashboards.
 
 2. Getting Started (Local Development Setup)
-This section guides a new developer through setting up the Vaya project on their local machine.
+This section guides a new developer through setting up the Vaya project on their local machine. 
 
 2.1. Prerequisites
-Before you begin, ensure you have the following installed on your system:
 
-Python 3.9+ (Python 3.9.6 is currently used)
+Ensure the following are installed on your system: 
 
-pip (Python's package installer, usually comes with Python)
+Python 3.9+ (Python 3.9.6 is currently used) 
 
-Git (for cloning the repository)
+pip (Python's package installer, usually comes with Python) 
+
+Git (for cloning the repository) 
 
 2.2. Local Setup Steps
-Follow these steps in your terminal, starting from where you want your project folder to be:
 
-Clone the Repository:
+Follow these steps in your terminal, starting from your desired project folder location: 
 
+Clone the Repository: 
+
+Bash
 git clone <your-repo-url-here> # Replace with your actual GitHub URL
 cd healthcare_app_motihari
+Create and Activate a Virtual Environment: 
 
-Create and Activate a Virtual Environment:
-It's crucial to use a virtual environment to manage project dependencies and avoid conflicts with other Python projects.
+It's crucial to use a virtual environment to manage project dependencies and avoid conflicts with other Python projects. 
 
+Bash
 python -m venv venv
 # On Windows:
 # venv\Scripts\activate
 # On macOS/Linux:
 # source venv/bin/activate
+You should see 
 
-You should see (venv) prefixing your terminal prompt, indicating the virtual environment is active.
+(venv) prefixing your terminal prompt, indicating the virtual environment is active. 
 
-Install Python Dependencies:
-Install all required Python libraries using pip.
+Install Python Dependencies: 
 
+Install all required Python libraries using pip. 
+
+Bash
 pip install Django psycopg2-binary
-# `psycopg2-binary` is for PostgreSQL. If you want to strictly use SQLite for development,
-# you can just run `pip install Django`. However, the current setup is ready for PostgreSQL.
+# `psycopg2-binary` is for PostgreSQL. 
+# If you want to strictly use SQLite for development, you can just run `pip install Django`. [cite: 17]
+# However, the current setup is ready for PostgreSQL. [cite: 18]
 # Django uses SQLite by default if no other database is configured.
+Database Migrations (Crucial Step!): 
 
-Database Migrations (Crucial Step!):
-Apply the initial database migrations. This creates all necessary tables in your db.sqlite3 file (or your configured database).
-Important: If you're setting up for the very first time, or if you've encountered InconsistentMigrationHistory or OperationalError: no such table errors previously, you might need to perform a clean migration reset:
 
-Delete the database file: rm db.sqlite3 (if using SQLite)
+Apply the initial database migrations. This creates all necessary tables in your 
 
-Delete all app-specific migration files:
+db.sqlite3 file (or your configured database). 
 
+Important: If setting up for the first time, or if encountering InconsistentMigrationHistory or OperationalError: no such table errors, perform a clean migration reset: 
+
+Delete the database file: 
+
+rm db.sqlite3 (if using SQLite) 
+
+Delete all app-specific migration files: 
+
+Bash
 rm users/migrations/0*.py
 rm doctors/migrations/0*.py
-# Repeat for any other custom apps you create later
+# Repeat for ai_assistant if you had migrations there
+Ensure 
 
-Ensure AUTH_USER_MODEL = 'users.CustomUser' is correctly set in config/settings.py before running makemigrations.
+AUTH_USER_MODEL = 'users.CustomUser' is correctly set in config/settings.py before running makemigrations. 
 
-Now, run the migrations:
+Now, run the migrations: 
 
+Bash
 python manage.py makemigrations users
 python manage.py makemigrations doctors
+python manage.py makemigrations ai_assistant # If you add models to ai_assistant later
 python manage.py migrate
+Create a Django Superuser: 
 
-Create a Django Superuser:
-You'll need a superuser account to access the Django Admin panel and manage initial data (like specialties and approving doctors).
+You'll need a superuser account to access the Django Admin panel and manage initial data (like specialties and approving doctors). 
 
+Bash
 python manage.py createsuperuser
+Follow the prompts to set up your admin username, email, and password. 
 
-Follow the prompts to set up your admin username, email, and password.
+Run the Development Server: 
 
-Run the Development Server:
-
+Bash
 python manage.py runserver
+This will start the Django development server, usually accessible at 
 
-This will start the Django development server, usually accessible at http://127.0.0.1:8000/.
+http://127.0.0.1:8000/. 
 
 2.3. Initial Data Setup (via Django Admin)
-After running the server and creating a superuser:
 
-Navigate to http://127.0.0.1:8000/admin/.
+After running the server and creating a superuser: 
 
-Log in with your superuser credentials.
+Navigate to http://127.0.0.1:8000/admin/ and log in with your superuser credentials. 
 
-Add Specialties: Go to Doctors -> Specialties and add some common medical specialties (e.g., "General Physician", "Pediatrician", "Gynecologist", "Dermatologist"). These are required for doctors to select during registration.
+Add Specialties: Go to Doctors -> Specialties and add common medical specialties (e.g., "General Physician", "Pediatrician", "Gynecologist", "Dermatologist"). These are required for doctors to select during registration. 
 
 Add Doctors (or approve registered ones):
 
-Manual Addition: Go to Doctors -> Doctors. You can now add doctor profiles manually. When adding, you'll need to link them to an existing CustomUser account. If the doctor doesn't have a login yet, you'll need to create a CustomUser for them first under Authentication and Authorization -> Users, then link it here. Ensure is_approved is checked for doctors to appear on the public listing.
+Manual Addition: Go to Doctors -> Doctors. You can add doctor profiles manually, linking them to an existing 
 
-Approving Registered Clinics: When a clinic registers via the frontend form, a Doctor profile and a CustomUser account are created with is_approved=False and is_active=False respectively. You, as the admin, will need to go to Doctors -> Doctors, find the newly registered clinic, edit it, and check the is_approved box. You might also want to activate their CustomUser account under Authentication and Authorization -> Users by checking is_active if they are meant to log in.
+CustomUser account. If the doctor doesn't have a login yet, create a 
+
+CustomUser for them under Authentication and Authorization -> Users, then link it here. Ensure 
+
+is_approved is checked for doctors to appear on the public listing.
+
+Approving Registered Clinics: When a clinic registers via the frontend form, a Doctor profile and a CustomUser account are created with is_approved=False and is_active=False respectively. As the admin, you will need to go to 
+
+Doctors -> Doctors, find the newly registered clinic, edit it, and check the is_approved box. You might also want to activate their 
+
+CustomUser account under Authentication and Authorization -> Users by checking is_active if they are meant to log in.
 
 3. Project Structure
-The project follows a standard Django application structure.
+The project follows a standard Django application structure:
 
 healthcare_app_motihari/
-├── config/                  # Main project settings, URLs, and root-level views
+├── config/                                # Main project settings, URLs, and root-level views 
 │   ├── __init__.py
-│   ├── settings.py          # Project-wide settings (database, installed apps, etc.)
-│   ├── urls.py              # Main URL routing (points to app-specific URLs)
-│   └── wsgi.py
-├── doctors/                 # Django app for Doctor and Clinic management
-│   ├── migrations/          # Database migration files
+│   ├── settings.py                        # Project-wide settings (database, installed apps, etc.) 
+│   ├── urls.py                            # Main URL routing (points to app-specific URLs) 
+│   ├── views.py                           # Contains basic views for project's root URLs (landing_page, about_us)
+│   ├── wsgi.py
+│   └── asgi.py                            # Standard ASGI configuration
+│
+├── doctors/                               # Django app for Doctor and Clinic management [cite: 34]
+│   ├── migrations/                        # Database migration files [cite: 34]
 │   │   └── __init__.py
 │   ├── __init__.py
-│   ├── admin.py             # Admin interface customizations for Doctors and Specialties
+│   ├── admin.py                           # Admin interface customizations for Doctors, Specialties, Appointments, Reports, DoctorSlots [cite: 34]
 │   ├── apps.py
-│   ├── forms.py             # Django Forms for clinic registration
-│   ├── models.py            # Database models (Doctor, Specialty)
+│   ├── forms.py                           # Django Forms for clinic registration, appointment booking, report upload, doctor profile edit, doctor slot management [cite: 34]
+│   ├── models.py                          # Database models (Specialty, Doctor, DoctorSlot, Appointment, Report) [cite: 35]
 │   ├── tests.py
-│   ├── urls.py              # URL routing for doctors app
-│   └── views.py             # Logic for doctor list, detail, and clinic registration
-├── users/                   # Django app for Custom User model and authentication
-│   ├── migrations/          # Database migration files
+│   ├── urls.py                            # URL routing for doctors app [cite: 34]
+│   └── views.py                           # Logic for doctor list, detail, clinic registration, doctor dashboard, appointment booking/management, report uploads, slot management [cite: 34]
+│
+├── users/                                 # Django app for Custom User model and authentication [cite: 36]
+│   ├── migrations/                        # Database migration files [cite: 36]
 │   │   └── __init__.py
 │   ├── __init__.py
-│   ├── admin.py             # Admin interface for CustomUser
+│   ├── admin.py                           # Admin interface for CustomUser [cite: 36]
 │   ├── apps.py
-│   ├── models.py            # CustomUser model definition
+│   ├── models.py                          # CustomUser model definition with additional patient fields [cite: 36]
 │   ├── tests.py
-│   ├── urls.py
-│   └── views.py
-├── templates/               # Project-wide HTML templates (e.g., landing page, base templates)
-│   ├── doctors/             # App-specific templates for 'doctors' app
-│   │   ├── clinic_registration_form.html  # Form for clinics to register
-│   │   ├── clinic_registration_success.html # Success message after registration
-│   │   ├── doctor_detail.html             # Individual doctor profile page
-│   │   └── doctor_list.html               # Public list of doctors
-│   └── index.html           # Landing page HTML
-├── manage.py                # Django's command-line utility
-└── venv/                    # Python virtual environment (ignored by Git)
-
+│   ├── urls.py                            # URL routing for users app (login, logout, signup, dashboard, profile edit)
+│   └── views.py                           # Logic for patient signup, custom login redirection, patient dashboard, patient profile edit
+│
+├── ai_assistant/                          # Django app for AI Symptom Checker and Doctor Recommendation
+│   ├── migrations/                        # (Presumed) Database migration files
+│   │   └── __init__.py
+│   ├── __init__.py
+│   ├── admin.py                           # (Presumed) Admin interface for AI related models, if any are added later.
+│   ├── apps.py
+│   ├── forms.py                           # Django Form for symptom input (SymptomCheckerForm)
+│   ├── models.py                          # Currently empty (no database models defined)
+│   ├── tests.py
+│   ├── urls.py                            # URL routing for AI assistant (symptom_checker)
+│   └── views.py                           # Logic for AI symptom checking and doctor recommendations using Groq API
+│
+├── templates/                             # Main project-wide HTML templates (configured in settings.py's DIRS) [cite: 37]
+│   ├── base.html                          # Core layout for the entire application
+│   ├── index.html                         # Landing page of the website [cite: 38]
+│   └── about_us.html                      # About Us page content
+│
+├── templates/doctor/                      # Templates specific to the 'doctors' app [cite: 37]
+│   ├── appointment_success.html           # Success page after appointment booking (currently not in use)
+│   ├── clinic_registration_form.html      # Form for clinics/doctors to register [cite: 37]
+│   ├── doctor_dashboard.html              # Dashboard for logged-in doctors
+│   ├── doctor_detail.html                 # Individual doctor profile page [cite: 37]
+│   ├── doctor_list.html                   # Public list of doctors with search/filter [cite: 37]
+│   ├── doctor_profile_edit.html           # Form for doctors to edit their profile
+│   ├── doctor_slot_management.html        # Interface for doctors to manage available time slots
+│   └── report_upload_form.html            # Generic form for uploading reports
+│
+├── templates/ai_assistant/                # Templates specific to the 'ai_assistant' app
+│   └── symptom_checker.html               # AI Symptom Checker interface
+│
+├── templates/user/                        # Templates specific to the 'users' app
+│   ├── login.html                         # User login form
+│   ├── patient_dashboard.html             # Dashboard for logged-in patients
+│   ├── patient_profile_edit.html          # Form for patients to edit their profile
+│   └── patient_signup.html                # Patient registration form
+│
+├── manage.py                              # Django's command-line utility [cite: 38]
+└── venv/                                  # Python virtual environment (ignored by Git) [cite: 38]
 4. Key Components & Logic
-4.1. Custom User Model (users/models.py)
-CustomUser: Extends Django's AbstractUser. This model serves as the base for all user accounts (admins, patients, doctors) in the system, allowing for future custom fields.
+4.1. Custom User Model (users app)
+
+CustomUser: Extends Django's AbstractUser, serving as the base for all user accounts (admins, patients, doctors). It includes additional patient-specific fields: 
+
+phone_number, date_of_birth, and gender. 
+
 
 4.2. Doctor & Clinic Management (doctors app)
-Specialty Model: Represents medical specialties (e.g., "Pediatrician"). It has a simple name field.
+
+Specialty Model: Represents medical specialties (e.g., "Pediatrician") with a simple name field. 
 
 Doctor Model:
 
-user (OneToOneField to CustomUser): Each Doctor profile is uniquely linked to one CustomUser account. This CustomUser account is intended for the doctor's personal login to manage their own profile (if implemented later).
+Linked to 
 
-specialties (ManyToManyField to Specialty): A doctor can be associated with multiple medical specialties.
+CustomUser via a OneToOneField, intended for the doctor's login. 
 
-Includes fields for clinic details, contact information, qualifications, and an is_approved flag.
+specialties is a ManyToManyField to Specialty, allowing doctors to be associated with multiple specialties. 
+
+Includes fields for clinic details, contact information, qualifications, and an 
+
+is_approved flag. 
+
+DoctorSlot Model: Represents specific, pre-defined time slots a doctor makes available for appointments. Key fields include doctor, date, start_time, end_time, and is_available. It ensures uniqueness for a given doctor, date, and time range.
+
+Appointment Model: Links a patient (CustomUser) to a doctor for a specific appointment_slot (DoctorSlot). It tracks status (pending, confirmed, completed, cancelled) and appointment_type.
+
+Report Model: Handles medical reports, linking patient and optionally doctor. Includes title, description, report_file, uploaded_at, and report_date.
 
 ClinicRegistrationForm (doctors/forms.py):
 
-A Django ModelForm based on the Doctor model.
+A Django 
 
-It includes additional fields (username, password, confirm_password) to facilitate the creation of a new CustomUser account for the doctor during the clinic registration process.
+ModelForm based on the Doctor model. 
 
-The form's save() method is overridden to handle the creation of the CustomUser account, linking it to the Doctor instance, and saving the ManyToManyField for specialties.
+Includes additional fields (
 
-The newly created CustomUser is set to is_active=False and the Doctor profile to is_approved=False by default, requiring manual activation by an administrator.
+username, password, confirm_password) to create a new CustomUser account for the doctor during registration. 
 
-doctor_list View (doctors/views.py):
+The 
 
-Fetches Doctor profiles that have is_approved=True.
+save() method is overridden to handle CustomUser creation, linking it to the Doctor instance, and saving ManyToManyFields for specialties. 
 
-Uses prefetch_related('specialties') for efficient retrieval of all associated specialties for each doctor (essential for ManyToManyFields).
+New 
 
-Includes basic search functionality by doctor name and filtering by specialty.
+CustomUser and Doctor profiles are set to is_active=False and is_approved=False by default, requiring admin activation. 
 
-register_clinic View (doctors/views.py):
+AppointmentBookingForm (doctors/forms.py): Now uses a ModelChoiceField to dynamically display and select DoctorSlot objects, ensuring appointments are tied to specific available slots.
 
-Handles the display of the clinic registration form and processes its submission.
+DoctorProfileEditForm (doctors/forms.py): Allows doctors to update their profile details, including general availability fields (working_days, start_time, end_time).
 
-On a POST request, it validates the ClinicRegistrationForm. If valid, it saves the form, creates the CustomUser and Doctor objects, and redirects to a success page.
+DoctorSlotForm (doctors/forms.py): Facilitates doctors in creating new available time slots.
 
-Utilizes Django's messages framework to provide feedback to the user (e.g., success or error messages).
+ReportUploadForm (doctors/forms.py): Used for both patient and doctor report uploads.
 
-4.3. Admin Customizations (admin.py in users and doctors)
-users/admin.py: Registers the CustomUser model with Django's UserAdmin for basic management in the admin interface.
+doctor_list View (doctors/views.py): Fetches Doctor profiles that have is_approved=True. It uses 
+
+prefetch_related('specialties') for efficient retrieval and includes search by doctor name and filtering by specialty. 
+
+register_clinic View (doctors/views.py): Handles clinic registration form display and submission. It saves the form, creates 
+
+CustomUser and Doctor objects, and uses Django's messages framework for feedback. 
+
+book_appointment View (doctors/views.py): Manages appointment booking, linking to DoctorSlots and updating their availability.
+
+confirm_appointment / cancel_appointment Views (doctors/views.py): Allow doctors (or patients for cancel) to manage appointment statuses and update associated DoctorSlot availability.
+
+doctor_dashboard View (doctors/views.py): Displays doctor-specific information, appointments, and relevant reports.
+
+doctor_slot_management View (doctors/views.py): Provides an interface for doctors to manage their specific time slots.
+
+doctor_upload_report / patient_upload_report Views (doctors/views.py): Handle the logic for uploading reports by doctors (for a patient) or by patients (for themselves).
+
+4.3. User Authentication & Patient Management (users app)
+
+PatientSignUpForm (users/forms.py): Extends UserCreationForm to include custom patient fields (first_name, last_name, phone_number, date_of_birth, gender) during registration.
+
+PatientProfileEditForm (users/forms.py): Allows patients to edit their profile details.
+
+patient_signup View (users/views.py): Handles patient registration, using PatientSignUpForm and providing feedback messages.
+
+custom_login_redirect View (users/views.py): A critical view that redirects logged-in users to doctor_dashboard (if approved doctor), patient_dashboard (if patient), or landing_page (if doctor profile is pending approval).
+
+patient_dashboard View (users/views.py): Displays a patient's profile, upcoming/past appointments, and personal reports.
+
+patient_profile_edit View (users/views.py): Enables patients to update their profile information.
+
+4.4. AI Assistant (ai_assistant app)
+
+SymptomCheckerForm (ai_assistant/forms.py): Simple form for users to input symptoms.
+
+symptom_checker View (ai_assistant/views.py):
+
+Integrates with the Groq API (Llama3 model) for AI responses.
+
+Crafts prompts to request structured JSON responses from the AI.
+
+Parses AI responses to extract understanding, suggested medical specialties, and a disclaimer.
+
+Uses suggested specialties to query the Doctor model and recommend approved doctors.
+
+Handles non-medical queries by providing a specific message.
+
+Note: API key is currently hardcoded; for production, move to environment variables.
+
+4.5. Admin Customizations (admin.py in users and doctors)
+
+users/admin.py: Registers CustomUser with UserAdmin for basic management. 
 
 doctors/admin.py:
 
-DoctorAdmin: Customizes how Doctor objects are displayed and managed in the admin.
+DoctorAdmin: Customizes how Doctor objects are displayed and managed, including list_display (using display_specialties method), list_filter (by specialties and is_approved status), and a custom approve_doctors action. 
 
-list_display: Uses a custom method display_specialties to show all specialties for a doctor in a comma-separated string, as specialties is a ManyToManyField.
+Registers 
 
-list_filter: Allows filtering doctors by their specialties and is_approved status.
+Specialty, Appointment, Report, and DoctorSlot models for admin management. 
 
-approve_doctors action: A custom admin action to easily mark selected doctors as approved (is_approved=True).
+4.6. URL Structure
 
-SpecialtyAdmin: Provides basic admin registration for the Specialty model.
+config/urls.py (Main Project URLs): 
 
-4.4. URL Structure
-config/urls.py (Main Project URLs):
+/admin/: Django Admin interface. 
 
-/admin/: Access to the Django Admin interface.
+/doctors/: Includes URL patterns from doctors/urls.py. 
 
-/doctors/: Includes all URL patterns defined in doctors/urls.py.
+/accounts/: Includes URL patterns from users/urls.py (Django's default auth paths).
 
-/: The root URL, pointing to your main landing page.
+/ai/: Includes URL patterns from ai_assistant/urls.py.
 
-doctors/urls.py (App-specific URLs for doctors app):
+/: The root URL, pointing to the main landing page. 
 
-path('', views.doctor_list, name='doctor_list'): Displays the public list of doctors.
+/about-us/: Points to the about us page.
 
-path('<int:doctor_id>/', views.doctor_detail, name='doctor_detail'): Shows the detailed profile of a specific doctor.
+media/ and static/ URLs are configured for development.
 
-path('register-clinic/', views.register_clinic, name='register_clinic'): The URL for the clinic registration form.
+doctors/urls.py (App-specific URLs): 
 
-path('register-clinic/success/', views.clinic_registration_success, name='clinic_registration_success'): The page displayed after a successful clinic registration.
+path('', views.doctor_list, name='doctor_list'): Public list of doctors. 
 
-4.5. Frontend Templates
-templates/index.html: The main landing page for "Vaya," featuring your brand, tagline, and calls to action.
+path('<int:doctor_id>/', views.doctor_detail, name='doctor_detail'): Detailed profile of a specific doctor. 
 
-templates/doctors/doctor_list.html: Displays a list of approved doctors with search and filter options.
+path('register-clinic/', views.register_clinic, name='register_clinic'): Clinic registration form. 
 
-templates/doctors/doctor_detail.html: A basic placeholder for individual doctor profiles.
+path('appointment-success/', views.appointment_success, name='appointment_success'): Post-appointment success page.
 
-templates/doctors/clinic_registration_form.html: The HTML form for clinics/doctors to register, integrated with Django forms for proper rendering and CSRF protection.
+path('<int:doctor_id>/book-appointment/', views.book_appointment, name='book_appointment'): Book an appointment.
 
-templates/doctors/clinic_registration_success.html: A simple confirmation page displayed to the user after their clinic registration is successfully submitted.
+path('appointments/<int:appointment_id>/confirm/', views.confirm_appointment, name='confirm_appointment'): Confirm appointment.
+
+path('appointments/<int:appointment_id>/cancel/', views.cancel_appointment, name='cancel_appointment'): Cancel appointment.
+
+path('reports/upload/patient/<int:patient_id>/', views.doctor_upload_report, name='doctor_upload_report'): Doctor uploads report for a patient.
+
+path('profile/edit/', views.doctor_profile_edit, name='doctor_profile_edit'): Doctor edits their profile.
+
+path('slots/manage/', views.doctor_slot_management, name='doctor_slot_management'): Doctor manages time slots.
+
+users/urls.py (App-specific URLs):
+
+login/, logout/: Standard Django authentication views.
+
+redirect/: Custom login redirect logic.
+
+signup/patient/: Patient signup form.
+
+dashboard/: Patient dashboard.
+
+profile/edit/: Patient profile edit.
+
+ai_assistant/urls.py (App-specific URLs):
+
+symptom-checker/: AI symptom checker page.
+
+4.7. Frontend Templates
+
+templates/base.html: The main base template defining the overall structure, navigation, common CSS styles (buttons, forms, messages), and responsive design. Navigation links are dynamically shown based on user roles and authentication status.
+
+templates/index.html: The main landing page for Vaya, showcasing key features and calls to action. 
+
+templates/about_us.html: Provides information about the project's mission and vision.
+
+templates/doctor/clinic_registration_form.html: The HTML form for clinics/doctors to register. 
+
+templates/doctor/appointment_success.html: A confirmation page displayed after a successful appointment request (not actively used in current flow but present). 
+
+templates/doctor/doctor_dashboard.html: Displays a logged-in doctor's profile, appointments, and relevant reports.
+
+templates/doctor/doctor_detail.html: A detailed profile page for individual doctors. 
+
+templates/doctor/doctor_list.html: Displays a list of approved doctors with search and filter options. 
+
+templates/doctor/doctor_profile_edit.html: Form for doctors to update their profile, with custom rendering for specialties.
+
+templates/doctor/doctor_slot_management.html: Interface for doctors to create and view their available time slots.
+
+templates/doctor/report_upload_form.html: A reusable template for uploading medical reports.
+
+templates/ai_assistant/symptom_checker.html: The UI for the AI symptom checker, displaying the input form, AI response, and recommended doctors.
+
+templates/user/login.html: Standard login form for users.
+
+templates/user/patient_dashboard.html: Personalized dashboard for patients, showing profile, appointments, and reports.
+
+templates/user/patient_profile_edit.html: Form for patients to edit their personal details.
+
+templates/user/patient_signup.html: Patient registration form with custom fields.
 
 5. Data Management & Security
-Database: Currently using SQLite (db.sqlite3) for local development. For production deployment, a robust relational database like PostgreSQL is highly recommended for scalability and reliability.
+Database: Currently uses SQLite (db.sqlite3) for local development. For production deployment, a robust relational database like PostgreSQL is highly recommended for scalability and reliability. 
 
-Data Privacy (DPDP Act, 2023): As a healthcare application handling sensitive personal data, strict adherence to India's Digital Personal Data Protection Act (DPDP Act, 2023) is paramount. Key principles to embed in development:
 
-Consent: Obtain explicit, informed, and unambiguous consent from users for collecting and processing their sensitive personal data (health data).
+Data Privacy (DPDP Act, 2023): As a healthcare application handling sensitive personal data, strict adherence to India's Digital Personal Data Protection Act (DPDP Act, 2023) is paramount.  Key principles to embed in development include:
 
-Purpose Limitation: Data should only be used for the specific purpose for which consent was given.
+Consent: Obtaining explicit, informed, and unambiguous consent for data collection and processing. 
 
-Data Minimization: Collect only the minimum amount of data necessary for the stated purpose.
+Purpose Limitation: Data used only for specified, consented purposes. 
 
-Security: Implement robust technical and organizational security measures to protect data from unauthorized access, loss, or breach.
+Data Minimization: Collecting only necessary data. 
 
-User Rights: Be prepared to handle user requests regarding their data (e.g., access, correction, erasure).
+Security: Robust technical and organizational measures to protect data. 
+
+User Rights: Handling user requests regarding their data (access, correction, erasure). 
 
 Security Best Practices (Implemented):
 
-CSRF Protection: Django's {% csrf_token %} is used in all POST forms to protect against Cross-Site Request Forgery vulnerabilities.
+CSRF Protection: Django's {% csrf_token %} is used in all POST forms. 
 
-Password Hashing: Django automatically hashes and salts user passwords, storing them securely.
+Password Hashing: Django automatically hashes and salts passwords securely. 
 
-Input Validation: Django Forms provide built-in validation to ensure data integrity and prevent common web vulnerabilities.
+Input Validation: Django Forms provide built-in validation. 
 
 Security Best Practices (For Production):
 
-HTTPS: Essential for all production traffic to encrypt data in transit.
+HTTPS: Essential for encrypting all production traffic. 
 
-Regular Security Audits: Conduct periodic security assessments and penetration testing.
+Regular Security Audits: Conduct periodic assessments. 
 
-Access Control: Implement granular role-based access control beyond basic admin permissions.
+Access Control: Implement granular role-based access control. 
 
 6. Deployment
-Current: Local development server (python manage.py runserver).
+Current: Local development server (python manage.py runserver). 
 
-Future: For production deployment, consider cloud platforms like Render (which you've used before), AWS (e.g., EC2, RDS, S3, Lambda), Google Cloud Platform (e.g., App Engine, Cloud SQL), or Microsoft Azure. These platforms offer scalability, enhanced security features, and robust database solutions. Your familiarity with Docker will be invaluable for consistent deployments across different environments.
+Future: For production, consider cloud platforms like Render (familiar), AWS (EC2, RDS, S3, Lambda), Google Cloud Platform (App Engine, Cloud SQL), or Microsoft Azure. These offer scalability, enhanced security, and robust databases. Familiarity with Docker will be invaluable for consistent deployments. 
 
 7. Future Enhancements & Roadmap
-This project is an MVP. Here are key areas for future development to evolve Vaya into a comprehensive platform:
+This project is an MVP. Here are key areas for future development:
 
-7.1. Patient-Facing Features
-Full Patient Registration/Login: Develop a dedicated patient signup and login flow.
+7.1.
 
-Appointment Booking System: Implement a robust system for patients to view doctors' real-time availability, select specific time slots, and book appointments. This will require a more sophisticated calendar management system for doctors.
+Patient-Facing Features 
+Full Patient Registration/Login: Dedicated signup and login flow.  (Largely implemented in current MVP with 
 
-Patient Dashboard: A personalized dashboard for patients to view upcoming and past appointments, access their digital health records (prescriptions, lab reports), and manage their profile.
+users app)
 
-In-app Chat/Communication: Implement a secure messaging system for patients to communicate with their booked doctors.
+Appointment Booking System: Robust system for patients to view real-time availability, select slots, and book appointments.  (Significantly implemented with 
 
-Automated Reminders: Send automated SMS/email notifications for upcoming appointments, medication reminders, and follow-ups.
+DoctorSlots)
 
-7.2. Doctor-Facing Features
-Doctor Dashboard/Portal: A dedicated web portal for doctors to manage their profile, update their availability, view and manage their appointments, and interact with patients.
+Patient Dashboard: Personalized dashboard for patients to view appointments, access digital health records.  (Largely implemented in current MVP)
 
-Digital Prescriptions: Implement functionality for doctors to issue digital prescriptions directly through the app.
+In-app Chat/Communication: Secure messaging for patients and doctors. 
 
-Telemedicine/Video Consultations: Integrate secure video conferencing for virtual consultations.
+Automated Reminders: SMS/email notifications for appointments, medication. 
 
-Billing & Payments: Integrate secure payment gateways for doctors to receive consultation fees directly through the platform.
+7.2.
 
-7.3. AI Support Guide
-Advanced Symptom Checker: Develop or integrate an AI-powered symptom checker that allows users to input their symptoms and receive preliminary doctor recommendations or triage advice. Crucially, this must always include clear disclaimers that it is not a substitute for professional medical advice.
+Doctor-Facing Features 
+Doctor Dashboard/Portal: Dedicated web portal for doctors to manage profile, availability, appointments, and interact with patients.  (Significantly implemented in current MVP)
 
-Personalized Doctor Matching: Enhance the AI to suggest the most appropriate specialist based on more nuanced symptom input, patient preferences, and doctor availability.
+Digital Prescriptions: Functionality for doctors to issue prescriptions via the app. 
 
-7.4. Data & Integration
-Electronic Health Records (EHR) Integration: Explore integration with existing EHR/EMR systems used by clinics to streamline data flow (this is a complex but highly valuable feature).
+Telemedicine/Video Consultations: Integrate secure video conferencing. 
 
-Lab/Pharmacy Integration: Allow patients to book lab tests directly through the app or order medicines from partner pharmacies.
+Billing & Payments: Integrate payment gateways for consultation fees. 
 
-7.5. Mobile App Development
-Android/iOS Native Apps: Once the web app is stable and validated, develop dedicated mobile applications (using React Native or Flutter, leveraging your existing skills) to enhance user experience, provide push notifications, and reach a wider mobile-first audience.
+7.3.
+
+AI Support Guide 
+Advanced Symptom Checker: Enhance AI for more detailed symptom analysis and recommendations, always with disclaimers.  (Basic version implemented in current MVP)
+
+Personalized Doctor Matching: Improve AI to suggest specialists based on nuanced input, preferences, and availability. 
+
+7.4.
+
+Data & Integration 
+Electronic Health Records (EHR) Integration: Explore integration with existing EHR/EMR systems. 
+
+Lab/Pharmacy Integration: Allow booking lab tests or ordering medicines. 
+
+7.5.
+
+Mobile App Development 
+Android/iOS Native Apps: Develop dedicated mobile applications (using React Native or Flutter) for enhanced UX and push notifications. 
 
 8. Troubleshooting Common Issues
-InconsistentMigrationHistory or OperationalError: no such table:
 
-Cause: Database schema is out of sync with your Django models, usually after changing model relationships (e.g., ForeignKey to ManyToManyField) without correctly running migrations.
 
-Fix: (For Development ONLY) Delete db.sqlite3 and all 0*.py files in your app's migrations/ directories (e.g., users/migrations/0*.py, doctors/migrations/0*.py). Then, run python manage.py makemigrations <app_name> for each affected app, followed by python manage.py migrate. Remember to createsuperuser again as the database was reset.
 
-FieldError: Invalid field name(s) given in select_related: 'specialty'. Choices are: user:
 
-Cause: Attempting to use select_related() with a ManyToManyField. select_related() is only for ForeignKey and OneToOneField.
 
-Fix: Use prefetch_related() instead for ManyToManyFields in your Django ORM queries (e.g., Doctor.objects.prefetch_related('specialties')).
+InconsistentMigrationHistory or OperationalError: no such table: 
 
-NameError: name 'redirect' is not defined:
+Cause: Database schema out of sync with models. 
 
-Cause: Missing import statement for the redirect function in your Django view.
+Fix: (For development ONLY) Delete db.sqlite3 and 0*.py files in app's migrations/ directories. Then, run python manage.py makemigrations <app_name> for each affected app, followed by python manage.py migrate. Remember to 
 
-Fix: Add from django.shortcuts import render, redirect to the top of your views.py file.
+createsuperuser again. 
 
-CSRF verification failed:
+FieldError: Invalid field name(s) given in select_related: 'specialty'. Choices are: user: 
 
-Cause: Missing {% csrf_token %} in a POST form, or incorrect browser cookie settings.
+Cause: Using select_related() with a ManyToManyField. 
 
-Fix: Ensure {% csrf_token %} is present inside every <form method="POST"> tag in your templates.
+Fix: Use prefetch_related() instead for ManyToManyFields (e.g., Doctor.objects.prefetch_related('specialties')). 
 
-Form Field Rendering Issues (e.g., styling not applying):
+NameError: name 'redirect' is not defined: 
 
-Cause: When rendering Django forms using {{ form.field_name }}, Django renders the raw HTML input. Your CSS might be targeting specific HTML attributes (like input[type="text"]) that aren't directly applied by Django's default rendering.
+Cause: Missing import for redirect in a Django view. 
 
-Fix: Ensure your CSS selectors are broad enough to catch Django's default form field output, or apply custom widgets with attrs in your forms.py to add specific CSS classes or IDs to the rendered fields.
+Fix: Add from django.shortcuts import render, redirect to the top of the views.py file. 
 
-This documentation provides a solid foundation for you or any new team member to jump into the Vaya project. Keep it updated as your project evolves!
+CSRF verification failed: 
+
+Cause: Missing {% csrf_token %} in a POST form or incorrect browser cookie settings. 
+
+Fix: Ensure {% csrf_token %} is present inside every <form method="POST"> tag. 
+
+Form Field Rendering Issues (e.g., styling not applying): 
+
+Cause: Django renders raw HTML input; CSS selectors might be too specific. 
+
+Fix: Ensure CSS selectors are broad enough or apply custom widgets with attrs in forms.py to add specific CSS classes or IDs. 
+
+

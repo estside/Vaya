@@ -1,7 +1,8 @@
 # healthcare_app_motihari/doctors/models.py
 
 from django.db import models
-from users.models import CustomUser # Import CustomUser
+from users.models import CustomUser
+import datetime # Import datetime for default values if needed
 
 class Specialty(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -11,13 +12,6 @@ class Specialty(models.Model):
 
     def __str__(self):
         return self.name
-
-# healthcare_app_motihari/doctors/models.py
-
-from django.db import models
-from users.models import CustomUser
-
-# ... (Specialty, Doctor, Appointment, Report models) ...
 
 class Doctor(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='doctor_login_profile')
@@ -30,7 +24,6 @@ class Doctor(models.Model):
     qualifications = models.TextField(blank=True, null=True)
     is_approved = models.BooleanField(default=False)
 
-    # --- NEW: Doctor Availability Fields ---
     working_days = models.CharField(
         max_length=100,
         blank=True,
@@ -39,7 +32,6 @@ class Doctor(models.Model):
     )
     start_time = models.TimeField(blank=True, null=True)
     end_time = models.TimeField(blank=True, null=True)
-    # ---------------------------------------
 
     def __str__(self):
         specialty_names = ", ".join([s.name for s in self.specialties.all()])
@@ -48,20 +40,40 @@ class Doctor(models.Model):
     class Meta:
         ordering = ['full_name']
 
-# ... (Appointment, Report models) ...
+class DoctorSlot(models.Model):
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='available_slots')
+    date = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    is_available = models.BooleanField(default=True)
 
-# --- NEW APPOINTMENT MODEL STARTS HERE ---
+    class Meta:
+        unique_together = ('doctor', 'date', 'start_time', 'end_time')
+        ordering = ['date', 'start_time']
+
+    def __str__(self):
+        return f"Dr. {self.doctor.full_name} - {self.date} {self.start_time}-{self.end_time} ({'Available' if self.is_available else 'Blocked'})"
+
+    def is_slot_available_for_appointment(self, appointment_date, appointment_time):
+        if not self.is_available:
+            return False
+        if self.date != appointment_date:
+            return False
+        if not (self.start_time <= appointment_time < self.end_time):
+            return False
+        return True
+
 class Appointment(models.Model):
-    # Patient will be a CustomUser. For now, it's a ForeignKey to CustomUser.
-    # Later, you might differentiate between Patient and Doctor users more explicitly.
     patient = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='patient_appointments')
     doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='doctor_appointments')
 
-    # Appointment date and time
+    # --- IMPORTANT: Ensure this ForeignKey to DoctorSlot exists ---
+    appointment_slot = models.ForeignKey(DoctorSlot, on_delete=models.SET_NULL, null=True, blank=True, related_name='booked_appointments')
+    # -------------------------------------------------------------
+
     appointment_date = models.DateField()
     appointment_time = models.TimeField()
 
-    # Status of the appointment
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('confirmed', 'Confirmed'),
@@ -70,90 +82,108 @@ class Appointment(models.Model):
     ]
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
 
-    # Type of appointment (paid/unpaid)
     APPOINTMENT_TYPE_CHOICES = [
         ('unpaid', 'Unpaid'),
-        ('paid', 'Paid (Coming Soon!)'), # As requested, mark paid as coming soon
+        ('paid', 'Paid (Coming Soon!)'),
     ]
     appointment_type = models.CharField(max_length=10, choices=APPOINTMENT_TYPE_CHOICES, default='unpaid')
 
-    # Optional: Reason for appointment
     reason = models.TextField(blank=True, null=True)
-
-    # Optional: Created at timestamp
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        # Order appointments by date and time
         ordering = ['appointment_date', 'appointment_time']
-        # Ensure a patient can't book the same doctor at the exact same time (optional, but good for uniqueness)
-        unique_together = ('doctor', 'appointment_date', 'appointment_time')
+        # Use unique_together on doctor, date, time if not using appointment_slot for uniqueness
+        # If using appointment_slot, then unique_together = ('appointment_slot',) is more precise
+        # For now, let's keep it simple:
+        unique_together = ('doctor', 'appointment_date', 'appointment_time') # Keep this for now
 
     def __str__(self):
         return f"Appointment for {self.patient.username} with Dr. {self.doctor.full_name} on {self.appointment_date} at {self.appointment_time} ({self.status})"
 
-# --- NEW APPOINTMENT MODEL ENDS HERE ---
-# healthcare_app_motihari/doctors/models.py
-
-from django.db import models
-from users.models import CustomUser # Import CustomUser
-
-# ... (Specialty, Doctor, Appointment models - these should already be there) ...
-
-# --- NEW REPORT MODEL STARTS HERE ---
 class Report(models.Model):
-    # The user who owns this report (patient)
     patient = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='medical_reports')
-    # The doctor associated with this report (optional, if generated by a specific doctor)
     doctor = models.ForeignKey(Doctor, on_delete=models.SET_NULL, null=True, blank=True, related_name='generated_reports')
 
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    # FileField to store the actual report file (PDF, image, etc.)
-    # You'll need to configure MEDIA_ROOT and MEDIA_URL in settings.py for file uploads
-    report_file = models.FileField(upload_to='patient_reports/') # Files will be stored in media/patient_reports/
+    report_file = models.FileField(upload_to='patient_reports/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    report_date = models.DateField(blank=True, null=True) # Date the report was issued/created
+    report_date = models.DateField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.title} for {self.patient.username} ({self.report_date if self.report_date else 'N/A'})"
 
     class Meta:
-        ordering = ['-uploaded_at'] # Most recent reports first
-# --- NEW REPORT MODEL ENDS HERE ---
+        ordering = ['-uploaded_at']
 # healthcare_app_motihari/doctors/models.py
 
 from django.db import models
 from users.models import CustomUser
-import datetime # Import datetime for default values if needed
+import datetime
 
-# ... (Specialty, Doctor, Appointment, Report models - these should already be there) ...
+# ... (Specialty, Doctor, DoctorSlot models remain the same) ...
 
-# --- NEW DOCTOR SLOT MODEL STARTS HERE ---
-class DoctorSlot(models.Model):
-    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='available_slots')
-    date = models.DateField()
-    start_time = models.TimeField()
-    end_time = models.TimeField()
-    is_available = models.BooleanField(default=True) # Can be set to false if a slot is manually blocked
-    # Optional: type of slot (e.g., "consultation", "procedure", "break")
-    # slot_type = models.CharField(max_length=50, blank=True, null=True)
+class Appointment(models.Model):
+    patient = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='patient_appointments')
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='doctor_appointments')
+
+    # This is the crucial link to the DoctorSlot
+    appointment_slot = models.ForeignKey(DoctorSlot, on_delete=models.PROTECT, # Use PROTECT or CASCADE based on desired behavior
+                                         null=True, blank=True, related_name='booked_appointments')
+    # Keep appointment_date and appointment_time for convenience/reporting,
+    # but they will now be populated from the selected appointment_slot.
+    # No longer need unique_together on these if appointment_slot is unique.
+    appointment_date = models.DateField()
+    appointment_time = models.TimeField()
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('confirmed', 'Confirmed'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ]
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+
+    APPOINTMENT_TYPE_CHOICES = [
+        ('unpaid', 'Unpaid'),
+        ('paid', 'Paid (Coming Soon!)'),
+    ]
+    appointment_type = models.CharField(max_length=10, choices=APPOINTMENT_TYPE_CHOICES, default='unpaid')
+
+    reason = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        # A doctor cannot have overlapping slots for the same date
-        unique_together = ('doctor', 'date', 'start_time', 'end_time')
-        ordering = ['date', 'start_time']
+        ordering = ['appointment_date', 'appointment_time']
+        # --- FIX STARTS HERE ---
+        # The uniqueness should now be based solely on the appointment_slot.
+        # An appointment 'uses up' one specific slot.
+        # If you want to ensure a patient can't book the same slot twice,
+        # you might consider unique_together = ('patient', 'appointment_slot').
+        # For a single booking per slot, just rely on the DoctorSlot's `is_available` flag.
+        # Removing the old unique_together as it clashes with DoctorSlot based booking.
+        # If you still want to ensure no two appointments can *ever* point to the same slot,
+        # you can enforce it programmatically in the view or by making appointment_slot unique.
+        # However, the `is_available` flag in DoctorSlot and the check in `book_appointment` view are sufficient.
+        # So, we can remove unique_together here entirely if relying on `is_available` and view logic.
+        # Or, if an appointment *always* implies a slot, you might want:
+        # unique_together = ('appointment_slot',) # If a slot can only have ONE appointment.
+        # But this would mean a slot can only ever be booked once. If you want to reuse slots
+        # after cancellation, the `is_available` flag approach is better.
+
+        # Given your `DoctorSlot` already has `unique_together = ('doctor', 'date', 'start_time', 'end_time')`,
+        # and you are marking `is_available=False` after booking, and checking it in the form,
+        # you don't strictly need a unique_together on Appointment itself for preventing double-booking *the same slot*.
+        # The primary protection is the `is_available` flag and the `Appointment.objects.filter(appointment_slot=selected_slot, ...).exists()` check.
+        # So, let's remove the problematic unique_together.
+
+        # Old: unique_together = ('doctor', 'appointment_date', 'appointment_time')
+        # New: Remove it as uniqueness is managed by DoctorSlot's availability and the view's checks.
+        pass # No unique_together constraint here
+        # --- FIX ENDS HERE ---
 
     def __str__(self):
-        return f"Dr. {self.doctor.full_name} - {self.date} {self.start_time}-{self.end_time} ({'Available' if self.is_available else 'Blocked'})"
+        return f"Appointment for {self.patient.username} with Dr. {self.doctor.full_name} on {self.appointment_date} at {self.appointment_time} ({self.status})"
 
-    # You might add a method here to check if a given appointment fits this slot
-    def is_slot_available_for_appointment(self, appointment_date, appointment_time):
-        if not self.is_available:
-            return False
-        if self.date != appointment_date:
-            return False
-        if not (self.start_time <= appointment_time < self.end_time): # Appointment time must be within slot
-            return False
-        return True
-# --- NEW DOCTOR SLOT MODEL ENDS HERE ---
+# ... (Report model remains the same) ...

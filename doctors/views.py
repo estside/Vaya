@@ -707,3 +707,154 @@ def doctor_slot_management(request):
         'doctor': doctor, # Pass doctor for template context
     }
     return render(request, 'doctors/doctor_slot_management.html', context)
+# healthcare_app_motihari/doctors/views.py
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
+from .models import Doctor, Specialty, Appointment, Report, DoctorSlot # Ensure DoctorSlot is imported
+from .forms import ClinicRegistrationForm, PatientSignUpForm, AppointmentBookingForm, ReportUploadForm, DoctorProfileEditForm, DoctorSlotForm
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import Http404
+from users.models import CustomUser
+from django.db.models import Q
+import datetime
+# Removed email imports as per previous instruction to skip email for now
+# from django.core.mail import send_mail
+# from django.template.loader import render_to_string
+# from django.conf import settings
+
+# ... (existing views) ...
+
+@login_required
+def book_appointment(request, doctor_id):
+    doctor = get_object_or_404(Doctor, id=doctor_id, is_approved=True)
+
+    try:
+        logged_in_doctor_profile = request.user.doctor_login_profile
+        messages.error(request, "Doctors cannot book appointments for themselves using this form.")
+        return redirect('doctor_dashboard')
+    except Doctor.DoesNotExist:
+        pass
+
+    if request.method == 'POST':
+        # Pass the doctor instance to the form for queryset filtering
+        form = AppointmentBookingForm(request.POST, doctor=doctor)
+        if form.is_valid():
+            # Get the selected DoctorSlot object from the form
+            selected_slot = form.cleaned_data['available_slot']
+
+            # Check if this slot is already booked by another pending/confirmed appointment
+            # This is a crucial check to prevent double booking the same DoctorSlot
+            if Appointment.objects.filter(
+                appointment_slot=selected_slot,
+                status__in=['pending', 'confirmed']
+            ).exists():
+                messages.error(request, "This slot is no longer available. Please select another time.")
+                # Re-render the form with updated available slots
+                form = AppointmentBookingForm(doctor=doctor) # Re-initialize form with doctor to refresh slots
+                context = {'doctor': doctor, 'form': form}
+                return render(request, 'doctors/book_appointment.html', context)
+
+
+            appointment = form.save(commit=False)
+            appointment.patient = request.user
+            appointment.doctor = doctor
+            appointment.appointment_date = selected_slot.date # Set date from slot
+            appointment.appointment_time = selected_slot.start_time # Set time from slot (start_time of slot)
+            appointment.appointment_slot = selected_slot # <--- IMPORTANT: Link to the selected slot
+            appointment.save()
+
+            # Mark the selected slot as unavailable after successful booking
+            selected_slot.is_available = False
+            selected_slot.save()
+
+            messages.success(request, f"Your appointment with Dr. {doctor.full_name} on {appointment.appointment_date} at {appointment.appointment_time} has been requested. It is currently pending confirmation.")
+            return redirect('appointment_success')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else: # GET request
+        # Pass the doctor instance to the form for queryset filtering
+        form = AppointmentBookingForm(doctor=doctor)
+
+    context = {
+        'doctor': doctor,
+        'form': form,
+    }
+    return render(request, 'doctors/book_appointment.html', context)
+
+# ... (rest of the views, including confirm_appointment and cancel_appointment) ...
+
+# --- Update confirm_appointment to affect DoctorSlot ---
+@login_required
+def confirm_appointment(request, appointment_id):
+    if request.method == 'POST':
+        appointment = get_object_or_404(Appointment, id=appointment_id)
+
+        try:
+            current_doctor = request.user.doctor_login_profile
+            if appointment.doctor != current_doctor:
+                messages.error(request, "You are not authorized to confirm this appointment.")
+                return redirect('doctor_dashboard')
+        except Doctor.DoesNotExist:
+            messages.error(request, "You must be a registered doctor to perform this action.")
+            return redirect('doctor_dashboard')
+
+        if appointment.status == 'pending':
+            appointment.status = 'confirmed'
+            appointment.save()
+
+            # Mark associated DoctorSlot as unavailable
+            if appointment.appointment_slot: # Check if a slot is linked
+                appointment.appointment_slot.is_available = False
+                appointment.appointment_slot.save()
+            else:
+                messages.warning(request, "Associated time slot not found or already marked unavailable.")
+
+            messages.success(request, f"Appointment with {appointment.patient.username} on {appointment.appointment_date} confirmed.")
+        else:
+            messages.warning(request, "Only pending appointments can be confirmed.")
+        return redirect('doctor_dashboard')
+    else:
+        raise Http404("Only POST requests are allowed for this action.")
+
+# --- Update cancel_appointment to affect DoctorSlot ---
+@login_required
+def cancel_appointment(request, appointment_id):
+    if request.method == 'POST':
+        appointment = get_object_or_404(Appointment, id=appointment_id)
+        canceller_is_doctor = False
+
+        try:
+            current_doctor_profile = request.user.doctor_login_profile
+            if appointment.doctor == current_doctor_profile:
+                canceller_is_doctor = True
+            else:
+                if appointment.patient != request.user:
+                    messages.error(request, "You are not authorized to cancel this appointment.")
+                    return redirect('patient_dashboard')
+        except Doctor.DoesNotExist:
+            if appointment.patient != request.user:
+                messages.error(request, "You are not authorized to cancel this appointment.")
+                return redirect('patient_dashboard')
+
+
+        if appointment.status in ['pending', 'confirmed']:
+            appointment.status = 'cancelled'
+            appointment.save()
+            messages.success(request, f"Appointment with {appointment.patient.username} on {appointment.appointment_date} has been cancelled.")
+
+            # Mark associated DoctorSlot as available again
+            if appointment.appointment_slot: # Check if a slot is linked
+                appointment.appointment_slot.is_available = True
+                appointment.appointment_slot.save()
+            else:
+                messages.warning(request, "Associated time slot not found or already available.")
+
+            redirect_url = 'doctor_dashboard' if canceller_is_doctor else 'patient_dashboard'
+            return redirect(redirect_url)
+        else:
+            messages.warning(request, "This appointment cannot be cancelled as it is already completed or cancelled.")
+        return redirect('doctor_dashboard') # Fallback redirect if not cancelled
+    else:
+        raise Http404("Only POST requests are allowed for this action.")

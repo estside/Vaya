@@ -39,7 +39,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'users',
     'doctors',
-    'ai_assistant'
+    'ai_assistant',
+    'channels',
+    'chat'
 ]
 
 MIDDLEWARE = [
@@ -140,4 +142,22 @@ LOGIN_URL = 'login'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media' # This will create a 'media' folder in your project root
 
-# ... (rest of settings) ...
+# healthcare_app_motihari/config/settings.py
+
+# ... (existing settings) ...
+
+# ASGI Application for Channels
+ASGI_APPLICATION = 'config.asgi.application' # <--- ADD THIS LINE
+
+# Channel Layer configuration (for real-time communication)
+# You need a Redis server running for this to work in development and production.
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)], # Adjust if your Redis is on a different host/port
+        },
+    },
+}
+
+# ... (rest of your settings) ...

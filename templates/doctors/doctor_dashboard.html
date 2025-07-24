@@ -281,22 +281,25 @@
                                         <p><strong>Type:</strong> {{ appointment.get_appointment_type_display }}</p>
                                         {% if appointment.reason %}<p><strong>Reason:</strong> {{ appointment.reason }}</p>{% endif %}
                                     </div>
-                                    <div class="appointment-actions">
-                                        {% if appointment.status == 'pending' %}
-                                            <form action="{% url 'confirm_appointment' appointment.id %}" method="post" style="display: inline-block;">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn-primary">Confirm</button>
-                                            </form>
-                                        {% endif %}
-                                        {% if appointment.status == 'pending' or appointment.status == 'confirmed' %}
-                                            <form action="{% url 'cancel_appointment' appointment.id %}" method="post" style="display: inline-block;">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn-danger">Cancel</button>
-                                            </form>
-                                        {% endif %}
-                                        <!-- Add upload report button for doctor -->
-                                        <a href="{% url 'doctor_upload_report' appointment.patient.id %}" class="btn-success">Upload Report</a>
-                                    </div>
+                                    {# Inside an appointment-item loop for upcoming_appointments #}
+<div class="appointment-actions">
+    {% if appointment.status == 'pending' %}
+        <form action="{% url 'confirm_appointment' appointment.id %}" method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" class="btn-primary">Confirm</button>
+        </form>
+    {% endif %}
+    {% if appointment.status == 'pending' or appointment.status == 'confirmed' %}
+        <form action="{% url 'cancel_appointment' appointment.id %}" method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" class="btn-danger">Cancel</button>
+        </form>
+        {# <--- ADD THIS CHAT BUTTON #}
+        <a href="{% url 'chat_room' appointment.id %}" class="btn-primary" style="padding: 8px 15px; font-size: 0.9em; margin-left: 5px;">Chat</a>
+    {% endif %}
+    <!-- Add upload report button for doctor -->
+    <a href="{% url 'doctor_upload_report' appointment.patient.id %}" class="btn-success">Upload Report</a>
+</div>
                                 </li>
                             {% endfor %}
                         </ul>
