@@ -28,33 +28,23 @@ class ChatRoom(models.Model):
     def __str__(self):
         return f"Chat for Appointment {self.appointment.id} ({self.appointment.patient.username} - Dr. {self.appointment.doctor.full_name})"
 
+from django.db import models
+from django.conf import settings # For AUTH_USER_MODEL
+# Import Appointment model from doctors app as per your structure
+from doctors.models import Appointment
+
 class Message(models.Model):
-    """
-    Represents an individual message within a chat room.
-    """
-    chat_room = models.ForeignKey(
-        ChatRoom,
-        on_delete=models.CASCADE,
-        related_name='messages',
-        help_text="The chat room this message belongs to."
-    )
-    sender = models.ForeignKey(
-        CustomUser,
-        on_delete=models.CASCADE,
-        help_text="The user who sent this message."
-    )
-    content = models.TextField(
-        help_text="The content of the message."
-    )
-    timestamp = models.DateTimeField(
-        auto_now_add=True,
-        help_text="Timestamp when the message was sent."
-    )
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_messages')
+    # IMPORTANT: Set null=True and blank=True for the initial migration
+    appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name='messages', null=True, blank=True)
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = "Message"
-        verbose_name_plural = "Messages"
-        ordering = ['timestamp'] # Order messages chronologically
+        ordering = ['timestamp']
+        verbose_name = "Chat Message"
+        verbose_name_plural = "Chat Messages"
 
     def __str__(self):
-        return f"'{self.content[:50]}' from {self.sender.username} in {self.chat_room.appointment.id}"
+        # Added a check for self.appointment to handle null in __str__
+        return f"Message from {self.sender.username} in Appointment {self.appointment.id if self.appointment else 'N/A'} at {self.timestamp.strftime('%Y-%m-%d %H:%M')}"

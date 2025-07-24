@@ -122,7 +122,10 @@
             <div class="message {% if message.sender == request.user %}sent{% else %}received{% endif %}">
                 <div class="message-sender">{{ message.sender.username }}</div>
                 <div class="message-content">{{ message.content }}</div>
-                <div class="message-timestamp">{{ message.timestamp|date:"H:i A, M d" }}</div>
+                <div class="message-timestamp">
+                    {# Format for Indian context directly in template #}
+                    {{ message.timestamp|date:"d/m/Y H:i A" }}
+                </div>
             </div>
         {% endfor %}
     </div>
@@ -131,6 +134,7 @@
         <button id="chat-message-submit">Send</button>
     </div>
 </div>
+
 
 <script>
     // Get the appointment ID from the Django context

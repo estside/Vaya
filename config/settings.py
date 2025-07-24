@@ -110,11 +110,9 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
-
+TIME_ZONE = 'Asia/Kolkata' # <--- Change this to your specific time zone
 USE_I18N = True
-
-USE_TZ = True
+USE_TZ = True # <--- Keep this True for timezone awareness
 # healthcare_app_motihari/config/settings.py
 AUTH_USER_MODEL = 'users.CustomUser'
 
