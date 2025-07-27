@@ -1,205 +1,233 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}AI Symptom Checker - Vaya{% endblock %}
+{% block title %}AI Symptom Checker{% endblock %}
 
 {% block extra_head %}
 <style>
-    /* Symptom Checker Specific Styles */
-    .symptom-checker-section {
-        flex-grow: 1;
-        padding: 60px 0;
-        background-color: #e6f6f2;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .checker-card {
-        background-color: #fff;
-        padding: 40px;
-        border-radius: 10px;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-        width: 100%;
+    .chat-container {
         max-width: 800px;
-        text-align: center;
-    }
-
-    .checker-card h2 {
-        font-size: 2.2em;
-        margin-bottom: 30px;
-    }
-
-    .ai-response-box {
-        background-color: #f0f8ff; /* Light blue background */
-        border: 1px solid #cceeff;
-        border-left: 5px solid #007bff; /* Blue left border */
-        padding: 20px;
-        margin-top: 30px;
+        margin: 20px auto;
+        border: 1px solid #ddd;
         border-radius: 8px;
-        text-align: left;
-    }
-
-    .ai-response-box h3 {
-        color: #007bff;
-        margin-top: 0;
-        font-size: 1.5em;
-    }
-
-    .ai-response-box p {
-        margin-bottom: 10px;
-        color: #333;
-    }
-
-    .ai-response-box ul {
-        list-style: disc;
-        padding-left: 20px;
-        margin-top: 10px;
-    }
-
-    .ai-response-box ul li {
-        margin-bottom: 5px;
-    }
-
-    .disclaimer {
-        font-size: 0.9em;
-        color: #dc3545; /* Red for warning */
-        font-weight: 500;
-        margin-top: 20px;
-        text-align: center;
-    }
-
-    .recommended-doctors-section {
-        margin-top: 40px;
-        text-align: left;
-    }
-
-    .recommended-doctors-section h3 {
-        font-size: 1.8em;
-        margin-bottom: 20px;
-        border-bottom: 2px solid #1a4a6e;
-        padding-bottom: 10px;
-    }
-
-    .doctor-card {
-        background-color: #f9f9f9;
-        border: 1px solid #eee;
-        padding: 15px;
-        margin-bottom: 10px;
-        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         display: flex;
         flex-direction: column;
-        gap: 5px;
+        height: 70vh; /* Adjust as needed */
     }
-
-    .doctor-card h4 {
-        margin: 0;
-        color: #007bff;
-        font-size: 1.2em;
+    .chat-messages {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 15px;
+        background-color: #f9f9f9;
+        border-bottom: 1px solid #eee;
     }
-
-    .doctor-card p {
-        margin: 0;
+    .message {
+        margin-bottom: 10px;
+        padding: 8px 12px;
+        border-radius: 15px;
+        max-width: 75%;
+        word-wrap: break-word;
+    }
+    .message.user-message {
+        background-color: #dcf8c6; /* Light green for user */
+        align-self: flex-end;
+        margin-left: auto;
+        text-align: right;
+    }
+    .message.ai-message {
+        background-color: #e0e0e0; /* Light gray for AI */
+        align-self: flex-start;
+        margin-right: auto;
+        text-align: left;
+    }
+    .message-sender {
+        font-weight: bold;
+        font-size: 0.8em;
         color: #555;
+        margin-bottom: 3px;
     }
-
-    .doctor-card strong {
-        color: #1a4a6e;
+    .message-timestamp {
+        font-size: 0.7em;
+        color: #888;
+        margin-top: 5px;
     }
-
-    .doctor-card a {
-        display: inline-block;
-        margin-top: 10px;
-        padding: 8px 15px;
+    .chat-input {
+        display: flex;
+        padding: 15px;
+        border-top: 1px solid #eee;
+        background-color: #fff;
+    }
+    .chat-input textarea {
+        flex-grow: 1;
+        border: 1px solid #ddd;
+        border-radius: 20px;
+        padding: 10px 15px;
+        margin-right: 10px;
+        resize: none;
+        font-size: 1em;
+        line-height: 1.4;
+        min-height: 40px;
+        max-height: 120px; /* Limit height */
+        overflow-y: auto;
+    }
+    .chat-input button {
         background-color: #007bff;
-        color: #fff;
-        text-decoration: none;
-        border-radius: 5px;
+        color: white;
+        border: none;
+        border-radius: 20px;
+        padding: 10px 20px;
+        cursor: pointer;
+        font-size: 1em;
         transition: background-color 0.3s ease;
     }
-    .doctor-card a:hover {
+    .chat-input button:hover {
         background-color: #0056b3;
-    }
-
-    /* Responsive Adjustments */
-    @media (max-width: 768px) {
-        .symptom-checker-section {
-            padding: 40px 0;
-        }
-        .checker-card {
-            padding: 25px;
-            margin: 0 15px;
-        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-    <section class="symptom-checker-section">
-        <div class="container">
-            <div class="checker-card">
-                <h2>AI Symptom Checker & Doctor Recommendation</h2>
-                <p>Describe your symptoms below, and our AI will suggest relevant medical specialties and recommend local doctors.</p>
-
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="form-group">
-                        <label for="{{ form.symptoms.id_for_label }}">{{ form.symptoms.label }}</label>
-                        {{ form.symptoms }}
-                        {% if form.symptoms.errors %}<p class="errorlist">{{ form.symptoms.errors }}</p>{% endif %}
+<div class="container my-5">
+    <div class="card shadow-lg p-4">
+        <h2 class="text-center mb-4">AI-Powered Symptom Checker & Doctor Recommendation</h2>
+        
+        <div class="chat-container">
+            <div class="chat-messages" id="ai-chat-log">
+                {# Loop through conversation_history to display all messages #}
+                {% for message in conversation_history %}
+                    <div class="message {% if message.sender == request.user %}user-message{% else %}ai-message{% endif %}">
+                        <div class="message-sender">
+                            {% if message.sender == request.user %}You{% else %}AI Assistant{% endif %}
+                        </div>
+                        <div class="message-content" style="white-space: pre-wrap;">{{ message.content|safe }}</div> {# IMPORTANT: Use '|safe' here #}
+                        <div class="message-timestamp">
+                            {{ message.timestamp|date:"d/m/Y H:i A" }} {# Indian format #}
+                        </div>
                     </div>
-                    {% if form.non_field_errors %}
-                        <ul class="errorlist">
-                            {% for error in form.non_field_errors %}
-                                <li>{{ error }}</li>
-                            {% endfor %}
-                        </ul>
-                    {% endif %}
-                    <button type="submit" class="btn-primary">Get Recommendations</button>
-                </form>
-
-                {% if ai_response_text %}
-                    <div class="ai-response-box">
-                        <h3>AI Understanding:</h3>
-                        <p>{{ ai_response_text }}</p>
-                        {% if ai_suggested_specialties %}
-                            <p><strong>Suggested Specialties:</strong></p>
-                            <ul>
-                                {% for specialty in ai_suggested_specialties %}
-                                    <li>{{ specialty }}</li>
-                                {% endfor %}
-                            </ul>
-                        {% endif %}
-                        <p class="disclaimer">
-                            <strong>Disclaimer:</strong> This AI provides general information and suggestions based on your input. It is NOT a substitute for professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare professional for any health concerns.
-                        </p>
-                    </div>
-                {% endif %}
-
-                {% if recommended_doctors %}
-                    <div class="recommended-doctors-section">
-                        <h3>Recommended Doctors for You:</h3>
-                        {% for doctor in recommended_doctors %}
-                            <div class="doctor-card">
-                                <h4>Dr. {{ doctor.full_name }}</h4>
-                                <p><strong>Specialties:</strong>
-                                    {% for specialty in doctor.specialties.all %}
-                                        {{ specialty.name }}{% if not forloop.last %}, {% endif %}
-                                    {% empty %}
-                                        N/A
-                                    {% endfor %}
-                                </p>
-                                <p><strong>Clinic:</strong> {{ doctor.clinic_name }}</p>
-                                <p><strong>Address:</strong> {{ doctor.clinic_address }}</p>
-                                <p><strong>Contact:</strong> {{ doctor.contact_phone }}</p>
-                                <a href="{% url 'doctor_detail' doctor.id %}" class="btn-primary" style="padding: 8px 15px; font-size: 0.9em;">View Details & Book</a>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% elif ai_response_text and not recommended_doctors %}
-                     <p style="margin-top: 20px; color: #777;">No specific doctors found for the suggested specialties in your area, but you can still browse all doctors.</p>
-                     <a href="{% url 'doctor_list' %}" class="btn-secondary" style="margin-top: 10px;">Browse All Doctors</a>
-                {% endif %}
+                {% endfor %}
+            </div>
+            <div class="chat-input">
+                <textarea id="symptom-input" placeholder="Type your symptoms or query..." rows="1"></textarea>
+                <button id="send-button">Send</button>
             </div>
         </div>
-    </section>
+    </div>
+</div>
+
+<script>
+    // Scroll to the bottom of the chat log on page load
+    const chatLog = document.getElementById('ai-chat-log');
+    chatLog.scrollTop = chatLog.scrollHeight;
+
+    const symptomInput = document.getElementById('symptom-input');
+    const sendButton = document.getElementById('send-button');
+
+    sendButton.onclick = function() {
+        sendMessage();
+    };
+
+    symptomInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) { // Send on Enter, new line on Shift+Enter
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    function sendMessage() {
+        const symptoms = symptomInput.value;
+        if (symptoms.trim() === '') {
+            return;
+        }
+        symptomInput.value = ''; // Clear input field
+
+        // Create a temporary message element for the user's message (optional, as the server will re-render)
+        const userMessageDiv = document.createElement('div');
+        userMessageDiv.classList.add('message', 'user-message');
+        userMessageDiv.innerHTML = `
+            <div class="message-sender">You</div>
+            <div class="message-content" style="white-space: pre-wrap;">${symptoms}</div>
+            <div class="message-timestamp">${new Date().toLocaleString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}</div>
+        `;
+        chatLog.appendChild(userMessageDiv);
+        chatLog.scrollTop = chatLog.scrollHeight; // Scroll to bottom
+
+        // Show a loading indicator (optional but good UX)
+        const loadingDiv = document.createElement('div');
+        loadingDiv.classList.add('message', 'ai-message');
+        loadingDiv.id = 'ai-loading-indicator';
+        loadingDiv.innerHTML = `<div class="message-sender">AI Assistant</div><div class="message-content">Typing...</div>`;
+        chatLog.appendChild(loadingDiv);
+        chatLog.scrollTop = chatLog.scrollHeight;
+
+
+        // Send the message to the server
+        fetch(window.location.href, { // Send to the current URL (symptom-checker view)
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCookie('csrftoken') // Get CSRF token
+            },
+            body: `symptoms=${encodeURIComponent(symptoms)}`
+        })
+        .then(response => response.text()) // Get HTML response
+        .then(html => {
+            // Remove loading indicator
+            const oldLoadingDiv = document.getElementById('ai-loading-indicator');
+            if (oldLoadingDiv) {
+                oldLoadingDiv.remove();
+            }
+
+            // Parse the HTML response to get the updated chat log
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newChatLogContent = doc.getElementById('ai-chat-log').innerHTML;
+            
+            // Update the chat log with the new content (including AI's response and full history)
+            chatLog.innerHTML = newChatLogContent;
+            chatLog.scrollTop = chatLog.scrollHeight; // Scroll to bottom again
+        })
+        .catch(error => {
+            console.error('Error sending message:', error);
+            // Remove loading indicator
+            const oldLoadingDiv = document.getElementById('ai-loading-indicator');
+            if (oldLoadingDiv) {
+                oldLoadingDiv.remove();
+            }
+
+            const errorMessageDiv = document.createElement('div');
+            errorMessageDiv.classList.add('message', 'ai-message'); // Show as AI message for error
+            errorMessageDiv.innerHTML = `
+                <div class="message-sender">AI Assistant</div>
+                <div class="message-content">An error occurred while getting AI response. Please try again.</div>
+                <div class="message-timestamp">${new Date().toLocaleString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}</div>
+            `;
+            chatLog.appendChild(errorMessageDiv);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        });
+    }
+
+    // Function to get CSRF token (needed for POST requests)
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Adjust textarea height dynamically
+    symptomInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    });
+</script>
 {% endblock %}

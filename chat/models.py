@@ -29,16 +29,16 @@ class ChatRoom(models.Model):
         return f"Chat for Appointment {self.appointment.id} ({self.appointment.patient.username} - Dr. {self.appointment.doctor.full_name})"
 
 from django.db import models
-from django.conf import settings # For AUTH_USER_MODEL
-# Import Appointment model from doctors app as per your structure
-from doctors.models import Appointment
+from django.conf import settings
+from doctors.models import Appointment #
 
 class Message(models.Model):
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_messages')
-    # IMPORTANT: Set null=True and blank=True for the initial migration
     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name='messages', null=True, blank=True)
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
+    # ADD THIS NEW FIELD for user-specific AI chat history:
+    ai_chat_for_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True, related_name='ai_conversations')
 
     class Meta:
         ordering = ['timestamp']
@@ -46,5 +46,8 @@ class Message(models.Model):
         verbose_name_plural = "Chat Messages"
 
     def __str__(self):
-        # Added a check for self.appointment to handle null in __str__
-        return f"Message from {self.sender.username} in Appointment {self.appointment.id if self.appointment else 'N/A'} at {self.timestamp.strftime('%Y-%m-%d %H:%M')}"
+        if self.appointment:
+            return f"Appt Chat: {self.sender.username} in Appt {self.appointment.id} at {self.timestamp.strftime('%Y-%m-%d %H:%M')}"
+        elif self.ai_chat_for_user:
+            return f"AI Chat: {self.sender.username} to {self.ai_chat_for_user.username} at {self.timestamp.strftime('%Y-%m-%d %H:%M')}"
+        return f"Message from {self.sender.username} at {self.timestamp.strftime('%Y-%m-%d %H:%M')}"
