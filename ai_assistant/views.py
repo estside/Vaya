@@ -6,7 +6,7 @@ from django.conf import settings
 from groq import Groq # Groq API client
 from .forms import SymptomCheckerForm
 from doctors.models import Doctor # This imports the Doctor model
-from .utils import get_doctors_info_by_specialty_names # Helper for RAG doctor retrieval
+from .utils import get_doctors_for_rag, format_doctors_for_llm # Helper for RAG doctor retrieval
 from chat.models import Message # Message model for chat history
 from django.contrib.auth import get_user_model # To get CustomUser model
 from django.db.models import Q # For complex database queries
@@ -123,16 +123,17 @@ def symptom_checker(request):
 
 
             # --- RAG Step (Retrieve from DB): Get doctors based on suggested specialties ---
-            recommended_doctors_text = get_doctors_info_by_specialty_names(suggested_specialties)
+            doctor_dicts = get_doctors_for_rag(suggested_specialties)
+            recommended_doctors_text = format_doctors_for_llm(doctor_dicts)
 
 
             # --- RAG Step (Augment Prompt & Final Generation): Second AI call with context ---
             final_ai_prompt_template = f"""
-            You are a highly knowledgeable medical AI assistant of an App named Vaya and u from india so give answers in indian context . Provide a general understanding of the user's symptoms, suggest relevant medical specialties, and recommend approved doctors ONLY from the provided "List of available doctors in Vaya". If no doctors are provided, or if none fit, state that. You MUST always include a clear medical disclaimer.
+            You are a highly knowledgeable medical AI assistant of an App named Vaya and u from india so give answers in indian context . Provide a general understanding of the user's symptoms, suggest relevant medical specialties, and recommend approved doctors ONLY from the provided \"List of available doctors in Vaya\". If no doctors are provided, or if none fit, state that. You MUST always include a clear medical disclaimer.
 
-            User's Symptoms: "{user_symptoms}"
+            User's Symptoms: \"{user_symptoms}\"
 
-            Here is the LIST OF AVAILABLE DOCTORS in Vaya's database (Format: - Dr. Full Name (ID: DoctorID, Specialties: X, Y)):
+            Here is the LIST OF AVAILABLE DOCTORS in Vaya's database (Format: - Dr. Full Name (ID: DoctorID, Specialties: X, Y, Clinic: Z, Qualifications: Q)):
             {recommended_doctors_text}
 
             Your response MUST be a JSON object with the following keys. Adhere strictly to this format:
