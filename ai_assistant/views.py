@@ -17,10 +17,10 @@ from django.utils.safestring import mark_safe # Required for rendering safe HTML
 # Get the CustomUser model
 User = get_user_model()
 
-# Initialize Groq client with API key
-# IMPORTANT: Replace "YOUR_GROQ_API_KEY_HERE" with your actual Groq API Key
-# For production, it's highly recommended to set this as an environment variable
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
+# Initialize Groq client with API key from environment variable
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+if not GROQ_API_KEY:
+    raise ValueError("GROQ_API_KEY environment variable is not set. Please add it to your .env file.")
 client = Groq(api_key=GROQ_API_KEY)
 
 # Store AI Assistant User globally to avoid repeated DB lookups

@@ -23,6 +23,7 @@ class Doctor(models.Model):
     contact_email = models.EmailField(unique=True, blank=True, null=True)
     qualifications = models.TextField(blank=True, null=True)
     is_approved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     working_days = models.CharField(
         max_length=100,
