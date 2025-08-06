@@ -51,7 +51,7 @@ healthcare_app_motihari/
 
 1. **Clone the repository:**
     ```sh
-    git clone <your-repo-url>
+    git clone https://github.com/estside/Vaya
     cd healthcare_app_motihari
     ```
 
