@@ -14,9 +14,9 @@ urlpatterns = [
     path('appointment/<int:appointment_id>/cancel/', views.cancel_appointment, name='cancel_appointment'),
     path('reports/upload/patient/', views.patient_upload_report, name='patient_upload_report'),
     path('reports/upload/doctor/<int:patient_id>/', views.doctor_upload_report, name='doctor_upload_report'),
-    # --- NEW URL for Doctor Profile Edit ---
     path('profile/edit/', views.doctor_profile_edit, name='doctor_profile_edit'),
-    # ---------------------------------------
-     path('slots/', views.doctor_slot_management, name='doctor_slot_management'),
-    # 
+    path('slots/', views.doctor_slot_management, name='doctor_slot_management'),
+    path('add-patient/', views.doctor_add_patient, name='doctor_add_patient'),
+    path('generate-slots/', views.doctor_generate_slots, name='doctor_generate_slots'),
+    path('slots/<int:slot_id>/toggle/', views.toggle_slot_availability, name='toggle_slot_availability'),
 ]

@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Patient - Dr. {{ doctor.full_name }} - Vaya{% endblock %}
+
+{% block extra_head %}
+<style>
+    .add-patient-section {
+        flex-grow: 1;
+        padding: 40px 0;
+        background-color: #e6f6f2;
+    }
+    .add-patient-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+    .add-patient-header h1 {
+        font-size: 2.8em;
+        margin-bottom: 10px;
+    }
+    .add-patient-form-card {
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        max-width: 800px;
+        margin: 0 auto 40px auto;
+    }
+    .add-patient-form-card h2 {
+        font-size: 2em;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 10px;
+        text-align: center;
+    }
+    .form-section {
+        margin-bottom: 30px;
+        padding: 20px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+    }
+    .form-section h3 {
+        color: #1a4a6e;
+        margin-bottom: 15px;
+        font-size: 1.3em;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+    }
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+        transition: border-color 0.3s ease;
+    }
+    .form-control:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+    }
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        width: 100%;
+        margin-top: 20px;
+    }
+    .btn-primary:hover {
+        background-color: #0056b3;
+    }
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+        margin-top: 10px;
+    }
+    .btn-secondary:hover {
+        background-color: #545b62;
+    }
+    .errorlist {
+        color: #dc3545;
+        font-size: 0.9em;
+        margin-top: 5px;
+        list-style: none;
+        padding: 0;
+    }
+    .help-text {
+        color: #6c757d;
+        font-size: 0.9em;
+        margin-top: 5px;
+    }
+    .info-box {
+        background-color: #d1ecf1;
+        border: 1px solid #bee5eb;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 20px;
+        color: #0c5460;
+    }
+    .info-box h4 {
+        margin-top: 0;
+        color: #0c5460;
+    }
+    
+    @media (max-width: 768px) {
+        .add-patient-section {
+            padding: 20px 0;
+        }
+        .add-patient-form-card {
+            padding: 20px;
+            margin: 0 15px 30px 15px;
+        }
+        .add-patient-form-card h2 {
+            font-size: 1.8em;
+        }
+        .form-row {
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+        .form-section {
+            padding: 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <section class="add-patient-section">
+        <div class="container">
+            <div class="add-patient-header">
+                <h1>Add Patient Online</h1>
+                <p>Dr. {{ doctor.full_name }} - Create patient account and book appointment</p>
+            </div>
+
+            <div class="add-patient-form-card">
+                <h2>Patient Information & Appointment</h2>
+                
+                <div class="info-box">
+                    <h4>📋 How it works:</h4>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        <li>Fill in the patient's details below</li>
+                        <li>Select an available time slot from your schedule</li>
+                        <li>A new patient account will be created automatically</li>
+                        <li>The appointment will be booked and confirmed immediately</li>
+                        <li>The patient will receive login credentials (username + temp password)</li>
+                    </ul>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <!-- Patient Information Section -->
+                    <div class="form-section">
+                        <h3>👤 Patient Information</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="{{ form.patient_username.id_for_label }}">{{ form.patient_username.label }}</label>
+                                {{ form.patient_username }}
+                                {% if form.patient_username.help_text %}
+                                    <small class="help-text">{{ form.patient_username.help_text }}</small>
+                                {% endif %}
+                                {% for error in form.patient_username.errors %}
+                                    <p class="errorlist">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                            <div class="form-group">
+                                <label for="{{ form.patient_email.id_for_label }}">{{ form.patient_email.label }}</label>
+                                {{ form.patient_email }}
+                                {% if form.patient_email.help_text %}
+                                    <small class="help-text">{{ form.patient_email.help_text }}</small>
+                                {% endif %}
+                                {% for error in form.patient_email.errors %}
+                                    <p class="errorlist">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="{{ form.patient_first_name.id_for_label }}">{{ form.patient_first_name.label }}</label>
+                                {{ form.patient_first_name }}
+                                {% if form.patient_first_name.help_text %}
+                                    <small class="help-text">{{ form.patient_first_name.help_text }}</small>
+                                {% endif %}
+                                {% for error in form.patient_first_name.errors %}
+                                    <p class="errorlist">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                            <div class="form-group">
+                                <label for="{{ form.patient_last_name.id_for_label }}">{{ form.patient_last_name.label }}</label>
+                                {{ form.patient_last_name }}
+                                {% if form.patient_last_name.help_text %}
+                                    <small class="help-text">{{ form.patient_last_name.help_text }}</small>
+                                {% endif %}
+                                {% for error in form.patient_last_name.errors %}
+                                    <p class="errorlist">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.patient_phone.id_for_label }}">{{ form.patient_phone.label }}</label>
+                            {{ form.patient_phone }}
+                            {% if form.patient_phone.help_text %}
+                                <small class="help-text">{{ form.patient_phone.help_text }}</small>
+                            {% endif %}
+                            {% for error in form.patient_phone.errors %}
+                                <p class="errorlist">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Appointment Details Section -->
+                    <div class="form-section">
+                        <h3>📅 Appointment Details</h3>
+                        <div class="form-group">
+                            <label for="{{ form.available_slot.id_for_label }}">{{ form.available_slot.label }}</label>
+                            {{ form.available_slot }}
+                            {% if form.available_slot.help_text %}
+                                <small class="help-text">{{ form.available_slot.help_text }}</small>
+                            {% endif %}
+                            {% for error in form.available_slot.errors %}
+                                <p class="errorlist">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="{{ form.appointment_type.id_for_label }}">{{ form.appointment_type.label }}</label>
+                                {{ form.appointment_type }}
+                                {% if form.appointment_type.help_text %}
+                                    <small class="help-text">{{ form.appointment_type.help_text }}</small>
+                                {% endif %}
+                                {% for error in form.appointment_type.errors %}
+                                    <p class="errorlist">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.reason.id_for_label }}">{{ form.reason.label }}</label>
+                            {{ form.reason }}
+                            {% if form.reason.help_text %}
+                                <small class="help-text">{{ form.reason.help_text }}</small>
+                            {% endif %}
+                            {% for error in form.reason.errors %}
+                                <p class="errorlist">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {% if form.non_field_errors %}
+                        <ul class="errorlist">
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+
+                    <button type="submit" class="btn-primary">Add Patient & Book Appointment</button>
+                </form>
+
+                <a href="{% url 'doctor_dashboard' %}" class="btn-secondary">Back to Dashboard</a>
+            </div>
+        </div>
+    </section>
+{% endblock %}

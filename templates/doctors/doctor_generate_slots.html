@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+
+{% block title %}Generate Time Slots - Dr. {{ doctor.full_name }} - Vaya{% endblock %}
+
+{% block extra_head %}
+<style>
+    .generate-slots-section {
+        flex-grow: 1;
+        padding: 40px 0;
+        background-color: #e6f6f2;
+    }
+    .generate-slots-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+    .generate-slots-header h1 {
+        font-size: 2.8em;
+        margin-bottom: 10px;
+    }
+    .generate-slots-form-card {
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        max-width: 800px;
+        margin: 0 auto 40px auto;
+    }
+    .generate-slots-form-card h2 {
+        font-size: 2em;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 10px;
+        text-align: center;
+    }
+    .form-section {
+        margin-bottom: 30px;
+        padding: 20px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+    }
+    .form-section h3 {
+        color: #1a4a6e;
+        margin-bottom: 15px;
+        font-size: 1.3em;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+    }
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+        transition: border-color 0.3s ease;
+    }
+    .form-control:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+    }
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        width: 100%;
+        margin-top: 20px;
+    }
+    .btn-primary:hover {
+        background-color: #0056b3;
+    }
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+        margin-top: 10px;
+    }
+    .btn-secondary:hover {
+        background-color: #545b62;
+    }
+    .errorlist {
+        color: #dc3545;
+        font-size: 0.9em;
+        margin-top: 5px;
+        list-style: none;
+        padding: 0;
+    }
+    .help-text {
+        color: #6c757d;
+        font-size: 0.9em;
+        margin-top: 5px;
+    }
+    .info-box {
+        background-color: #d1ecf1;
+        border: 1px solid #bee5eb;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 20px;
+        color: #0c5460;
+    }
+    .info-box h4 {
+        margin-top: 0;
+        color: #0c5460;
+    }
+    .example-schedule {
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 20px;
+        color: #856404;
+    }
+    .example-schedule h4 {
+        margin-top: 0;
+        color: #856404;
+    }
+    
+    @media (max-width: 768px) {
+        .generate-slots-section {
+            padding: 20px 0;
+        }
+        .generate-slots-form-card {
+            padding: 20px;
+            margin: 0 15px 30px 15px;
+        }
+        .generate-slots-form-card h2 {
+            font-size: 1.8em;
+        }
+        .form-row {
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+        .form-section {
+            padding: 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <section class="generate-slots-section">
+        <div class="container">
+            <div class="generate-slots-header">
+                <h1>Generate Time Slots</h1>
+                <p>Dr. {{ doctor.full_name }} - Set your working schedule and automatically generate appointment slots</p>
+            </div>
+
+            <div class="generate-slots-form-card">
+                <h2>Working Schedule & Slot Generation</h2>
+                
+                <div class="info-box">
+                    <h4>🚀 How it works:</h4>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        <li>Set your working days and hours</li>
+                        <li>Choose appointment slot duration (15, 30, 45, or 60 minutes)</li>
+                        <li>Specify how many weeks ahead to generate slots</li>
+                        <li>System automatically creates all available time slots</li>
+                        <li>Slots are marked as available and ready for booking</li>
+                    </ul>
+                </div>
+
+                <div class="example-schedule">
+                    <h4>📅 Example:</h4>
+                    <p><strong>Working Days:</strong> Monday to Friday<br>
+                    <strong>Hours:</strong> 9:00 AM to 5:00 PM<br>
+                    <strong>Slot Duration:</strong> 30 minutes<br>
+                    <strong>Result:</strong> 16 slots per day (9:00, 9:30, 10:00, 10:30, etc.)</p>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <!-- Working Schedule Section -->
+                    <div class="form-section">
+                        <h3>📅 Working Schedule</h3>
+                        <div class="form-group">
+                            <label for="{{ form.working_days.id_for_label }}">{{ form.working_days.label }}</label>
+                            {{ form.working_days }}
+                            {% if form.working_days.help_text %}
+                                <small class="help-text">{{ form.working_days.help_text }}</small>
+                            {% endif %}
+                            {% for error in form.working_days.errors %}
+                                <p class="errorlist">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="{{ form.start_time.id_for_label }}">{{ form.start_time.label }}</label>
+                                {{ form.start_time }}
+                                {% if form.start_time.help_text %}
+                                    <small class="help-text">{{ form.start_time.help_text }}</small>
+                                {% endif %}
+                                {% for error in form.start_time.errors %}
+                                    <p class="errorlist">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                            <div class="form-group">
+                                <label for="{{ form.end_time.id_for_label }}">{{ form.end_time.label }}</label>
+                                {{ form.end_time }}
+                                {% if form.end_time.help_text %}
+                                    <small class="help-text">{{ form.end_time.help_text }}</small>
+                                {% endif %}
+                                {% for error in form.end_time.errors %}
+                                    <p class="errorlist">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Slot Configuration Section -->
+                    <div class="form-section">
+                        <h3>⏰ Slot Configuration</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="{{ form.slot_duration.id_for_label }}">{{ form.slot_duration.label }}</label>
+                                {{ form.slot_duration }}
+                                {% if form.slot_duration.help_text %}
+                                    <small class="help-text">{{ form.slot_duration.help_text }}</small>
+                                {% endif %}
+                                {% for error in form.slot_duration.errors %}
+                                    <p class="errorlist">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                            <div class="form-group">
+                                <label for="{{ form.generate_for_weeks.id_for_label }}">{{ form.generate_for_weeks.label }}</label>
+                                {{ form.generate_for_weeks }}
+                                {% if form.generate_for_weeks.help_text %}
+                                    <small class="help-text">{{ form.generate_for_weeks.help_text }}</small>
+                                {% endif %}
+                                {% for error in form.generate_for_weeks.errors %}
+                                    <p class="errorlist">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if form.non_field_errors %}
+                        <ul class="errorlist">
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+
+                    <button type="submit" class="btn-primary">Generate Time Slots</button>
+                </form>
+
+                <div style="text-align: center; margin-top: 20px;">
+                    <a href="{% url 'doctor_slot_management' %}" class="btn-secondary">View Existing Slots</a>
+                    <a href="{% url 'doctor_dashboard' %}" class="btn-secondary">Back to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

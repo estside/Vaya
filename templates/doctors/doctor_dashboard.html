@@ -238,7 +238,12 @@
                     <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
                     <h2>Schedule Management</h2>
                     <p style="font-size: 0.9em; color: #666;">Define your available time slots.</p>
+                    <a href="{% url 'doctor_generate_slots' %}" class="btn-primary" style="width: 100%; padding: 10px; margin-top: 10px; text-align: center;">Generate Time Slots</a>
                     <a href="{% url 'doctor_slot_management' %}" class="btn-primary" style="width: 100%; padding: 10px; margin-top: 10px; text-align: center;">Manage Slots</a>
+                    <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+                    <h2>Patient Management</h2>
+                    <p style="font-size: 0.9em; color: #666;">Add patients online and book appointments.</p>
+                    <a href="{% url 'doctor_add_patient' %}" class="btn-primary" style="width: 100%; padding: 10px; margin-top: 10px; text-align: center;">Add Patient Online</a>
                     <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
                     <h2>Patient Reports</h2>
                     <p style="font-size: 0.9em; color: #666;">Reports from your patients or uploaded by you.</p>
