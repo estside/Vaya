@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}Patient: {{ patient.username }} - Dr. {{ doctor.full_name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .patient-detail-section {
+        flex-grow: 1;
+        padding: 40px 0;
+        background-color: #e6f6f2;
+    }
+    .patient-detail-container {
+        max-width: 900px;
+        margin: 0 auto;
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+    .patient-header {
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 10px;
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .patient-header h1 {
+        font-size: 2.5em;
+        color: #1a4a6e;
+        margin: 0;
+    }
+    .patient-info {
+        margin-top: 10px;
+    }
+    .appointment-list-card, .report-list-card {
+        margin-top: 30px;
+    }
+    .appointment-list-card h2, .report-list-card h2 {
+        font-size: 1.8em;
+        border-bottom: 2px solid #ccc;
+        padding-bottom: 5px;
+        margin-bottom: 20px;
+    }
+    .appointment-item, .report-item {
+        background-color: #f9f9f9;
+        border: 1px solid #eee;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+    }
+    .appointment-item.confirmed { background-color: #d4edda; border-color: #c3e6cb; }
+    .appointment-item.completed { background-color: #e2e3e5; border-color: #d6d8db; }
+    .appointment-item.cancelled { background-color: #f8d7da; border-color: #f5c6cb; }
+    .appointment-details p {
+        margin: 0 0 5px 0;
+    }
+    .appointment-details strong {
+        color: #1a4a6e;
+    }
+    .report-item .report-details p {
+        margin: 0 0 5px 0;
+    }
+    .report-item .report-actions a {
+        padding: 8px 15px;
+        font-size: 0.9em;
+        margin-left: 5px;
+        text-decoration: none;
+        border-radius: 5px;
+        background-color: #007bff;
+        color: white;
+    }
+    .no-entries {
+        text-align: center;
+        color: #777;
+        padding: 20px;
+        border: 1px dashed #ccc;
+        border-radius: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <section class="patient-detail-section">
+        <div class="patient-detail-container">
+            <div class="patient-header">
+                <div>
+                    <h1>Patient: {{ patient.username }}</h1>
+                    <div class="patient-info">
+                        <p><strong>Name:</strong> {{ patient.get_full_name }}</p>
+                        <p><strong>Email:</strong> {{ patient.email }}</p>
+                        <p><strong>Phone:</strong> {{ patient.phone_number }}</p>
+                    </div>
+                </div>
+                <div class="appointment-actions">
+                    <a href="{% url 'book_followup_appointment' doctor.id patient.id %}" class="btn-primary">Book Follow-up</a>
+                    <a href="{% url 'doctor_upload_report' patient.id %}" class="btn-primary">Upload Report</a>
+                </div>
+            </div>
+
+            <div class="appointment-list-card">
+                <h2>Upcoming Appointments</h2>
+                {% if upcoming_appointments %}
+                    <ul class="appointments-list">
+                        {% for appointment in upcoming_appointments %}
+                            <li class="appointment-item {{ appointment.status }}">
+                                <div class="appointment-details">
+                                    <p><strong>Date:</strong> {{ appointment.appointment_date|date:"F d, Y" }}</p>
+                                    <p><strong>Time:</strong> {{ appointment.appointment_time|time:"h:i A" }}</p>
+                                    <p><strong>Status:</strong> {{ appointment.get_status_display }}</p>
+                                    <p><strong>Reason:</strong> {{ appointment.reason|default:"N/A" }}</p>
+                                    {% if appointment.comments %}<p><strong>Comments:</strong> {{ appointment.comments }}</p>{% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="no-entries">No upcoming appointments with this patient.</p>
+                {% endif %}
+            </div>
+
+            <div class="appointment-list-card">
+                <h2>Past Appointments</h2>
+                {% if past_appointments %}
+                    <ul class="appointments-list">
+                        {% for appointment in past_appointments %}
+                            <li class="appointment-item {{ appointment.status }}">
+                                <div class="appointment-details">
+                                    <p><strong>Date:</strong> {{ appointment.appointment_date|date:"F d, Y" }}</p>
+                                    <p><strong>Time:</strong> {{ appointment.appointment_time|time:"h:i A" }}</p>
+                                    <p><strong>Status:</strong> {{ appointment.get_status_display }}</p>
+                                    <p><strong>Reason:</strong> {{ appointment.reason|default:"N/A" }}</p>
+                                    {% if appointment.comments %}<p><strong>Comments:</strong> {{ appointment.comments }}</p>{% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="no-entries">No past appointments with this patient.</p>
+                {% endif %}
+            </div>
+            
+            <div class="report-list-card">
+                <h2>Patient Reports</h2>
+                {% if reports %}
+                    <ul class="report-list">
+                        {% for report in reports %}
+                            <li class="report-item">
+                                <div class="report-details">
+                                    <p><strong>Title:</strong> {{ report.title }}</p>
+                                    <p><strong>Date:</strong> {{ report.report_date|default:"N/A" }}</p>
+                                    <p><strong>Uploaded By:</strong> {% if report.doctor %}Dr. {{ report.doctor.full_name }}{% else %}Patient{% endif %}</p>
+                                    <p><strong>Description:</strong> {{ report.description|default:"N/A" }}</p>
+                                </div>
+                                <div class="report-actions">
+                                    {% if report.report_file %}
+                                        <a href="{{ report.report_file.url }}" target="_blank">Download</a>
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="no-entries">No reports on file for this patient.</p>
+                {% endif %}
+            </div>
+            
+        </div>
+    </section>
+{% endblock %}

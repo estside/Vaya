@@ -1,91 +1,271 @@
 # healthcare_app_motihari/doctors/views.py
 
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse
-from .models import Doctor, Specialty, Appointment, Report, DoctorSlot
-from .forms import ClinicRegistrationForm, PatientSignUpForm, AppointmentBookingForm, ReportUploadForm, DoctorProfileEditForm, DoctorSlotForm, DoctorAddPatientForm, DoctorScheduleForm
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.http import Http404
-from users.models import CustomUser
 from django.db.models import Q
-import datetime
+from django.utils import timezone
+from datetime import timedelta, datetime
+import calendar
+from .models import Doctor, Specialty, Appointment, Report, DoctorSlot
+from .forms import (
+    ClinicRegistrationForm,
+    AppointmentBookingForm,
+    ReportUploadForm,
+    DoctorProfileEditForm,
+    DoctorSlotForm,
+    DoctorScheduleForm,
+    DoctorAddPatientForm,
+    FollowupAppointmentForm
+)
+from users.models import CustomUser
+
+
+def landing_page(request):
+    """Renders the landing page."""
+    return render(request, 'index.html')
+
+
+def about_us(request):
+    """Renders the about us page."""
+    return render(request, 'about_us.html')
+
+
+def is_doctor(user):
+    """Check if the user is a doctor and their profile is approved."""
+    return user.is_authenticated and hasattr(user, 'doctor_login_profile') and user.doctor_login_profile.is_approved
+
 
 def doctor_list(request):
-    doctors = Doctor.objects.filter(is_approved=True).prefetch_related('specialties')
-    specialties = Specialty.objects.all()
+    """
+    Renders a list of approved doctors with search and filter functionality.
+    """
+    doctors = Doctor.objects.filter(is_approved=True)
 
     query = request.GET.get('q')
-    if query:
-        doctors = doctors.filter(full_name__icontains=query)
+    specialty_name = request.GET.get('specialty')
 
-    specialty_filter = request.GET.get('specialty')
-    if specialty_filter:
-        doctors = doctors.filter(specialties__name=specialty_filter)
+    if query:
+        doctors = doctors.filter(
+            Q(full_name__icontains=query) |
+            Q(clinic_name__icontains=query)
+        )
+
+    if specialty_name and specialty_name != 'All Specialties':
+        doctors = doctors.filter(specialties__name__iexact=specialty_name)
+
+    # Use prefetch_related for a single query to get all specialties
+    doctors = doctors.prefetch_related('specialties').distinct()
+    
+    specialties = Specialty.objects.all().order_by('name')
 
     context = {
         'doctors': doctors,
         'specialties': specialties,
         'current_query': query,
-        'current_specialty': specialty_filter,
+        'current_specialty': specialty_name,
     }
     return render(request, 'doctors/doctor_list.html', context)
 
+
 def doctor_detail(request, doctor_id):
-    doctor = Doctor.objects.get(id=doctor_id)
-    context = {'doctor': doctor}
+    """
+    Renders the public profile page for a single doctor.
+    """
+    doctor = get_object_or_404(Doctor, id=doctor_id, is_approved=True)
+    context = {
+        'doctor': doctor,
+    }
     return render(request, 'doctors/doctor_detail.html', context)
 
+
 def register_clinic(request):
+    """
+    Handles the clinic registration form display and submission.
+    """
     if request.method == 'POST':
         form = ClinicRegistrationForm(request.POST)
         if form.is_valid():
-            try:
-                doctor = form.save()
-                messages.success(request, 'Your clinic registration has been submitted successfully! We will review your details soon.')
-                form = ClinicRegistrationForm()
-            except Exception as e:
-                messages.error(request, f'An error occurred during registration: {e}')
-        else:
-            messages.error(request, 'Please correct the errors below.')
+            form.save()
+            messages.success(request, "Your clinic has been registered! It will be listed after admin approval.")
+            return redirect('landing_page')
     else:
         form = ClinicRegistrationForm()
 
-    context = {
-        'form': form,
-        'specialties': Specialty.objects.all()
-    }
+    context = {'form': form}
     return render(request, 'doctors/clinic_registration_form.html', context)
 
-def clinic_registration_success(request):
-    return render(request, 'doctors/clinic_registration_success.html')
 
 @login_required
+@user_passes_test(lambda u: not is_doctor(u))
+def book_appointment(request, doctor_id):
+    """
+    Renders the appointment booking form for a patient.
+    """
+    doctor = get_object_or_404(Doctor, id=doctor_id, is_approved=True)
+    if request.method == 'POST':
+        form = AppointmentBookingForm(request.POST, doctor=doctor)
+        if form.is_valid():
+            appointment = form.save(commit=False)
+            appointment.patient = request.user
+            appointment.doctor = doctor
+            appointment.save()
+
+            # Mark the selected DoctorSlot as unavailable
+            appointment.appointment_slot.is_available = False
+            appointment.appointment_slot.save()
+
+            messages.success(request, "Your appointment request has been sent successfully!")
+            return redirect('appointment_success')
+    else:
+        form = AppointmentBookingForm(doctor=doctor)
+
+    context = {
+        'form': form,
+        'doctor': doctor,
+    }
+    return render(request, 'doctors/book_appointment.html', context)
+
+
+@login_required
+@user_passes_test(is_doctor)
+def book_followup_appointment(request, doctor_id, patient_id):
+    """
+    A view for a doctor to book a follow-up appointment for a specific patient.
+    """
+    doctor = get_object_or_404(Doctor, id=doctor_id)
+    patient = get_object_or_404(CustomUser, id=patient_id)
+    
+    # Ensure the logged-in user is the doctor of this clinic
+    if request.user != doctor.user:
+        messages.error(request, "You are not authorized to book a follow-up appointment for this patient.")
+        return redirect('doctor_dashboard')
+
+    if request.method == 'POST':
+        form = FollowupAppointmentForm(request.POST, doctor=doctor)
+        if form.is_valid():
+            slot = form.cleaned_data['available_slot']
+            comment = form.cleaned_data['comments']
+            payment_status = form.cleaned_data['payment_status']
+            reason = form.cleaned_data['reason']
+
+            # Create the appointment
+            appointment = Appointment.objects.create(
+                patient=patient,
+                doctor=doctor,
+                appointment_slot=slot,
+                status='confirmed', # Doctor-booked appointments are auto-confirmed
+                comments=comment,
+                payment_status=payment_status,
+                reason=reason,
+                appointment_date=slot.date,
+                appointment_time=slot.start_time,
+            )
+
+            # Mark the selected DoctorSlot as unavailable
+            slot.is_available = False
+            slot.save()
+
+            messages.success(request, f"Follow-up appointment for {patient.username} has been successfully booked.")
+            return redirect('doctor_patient_detail', patient_id=patient.id)
+    else:
+        form = FollowupAppointmentForm(doctor=doctor)
+        
+    context = {
+        'form': form,
+        'doctor': doctor,
+        'patient': patient,
+        'title': 'Book Follow-up Appointment',
+    }
+    return render(request, 'doctors/book_followup.html', context)
+
+
+def appointment_success(request):
+    """Renders the success page after an appointment request."""
+    return render(request, 'doctors/appointment_success.html')
+
+
+@login_required
+@user_passes_test(is_doctor)
+def confirm_appointment(request, appointment_id):
+    """
+    Allows a doctor to confirm a pending appointment.
+    """
+    appointment = get_object_or_404(Appointment, id=appointment_id)
+    
+    # Security check: Ensure the doctor is the one for this appointment
+    if request.user != appointment.doctor.user:
+        messages.error(request, "You are not authorized to confirm this appointment.")
+        return redirect('doctor_dashboard')
+
+    if request.method == 'POST':
+        appointment.status = 'confirmed'
+        appointment.save()
+        messages.success(request, "Appointment has been confirmed.")
+
+    return redirect('doctor_dashboard')
+
+
+@login_required
+def cancel_appointment(request, appointment_id):
+    """
+    Allows a patient or a doctor to cancel an appointment.
+    """
+    appointment = get_object_or_404(Appointment, id=appointment_id)
+    
+    # Security check: Ensure the user is either the patient or the doctor
+    if not (request.user == appointment.patient or (appointment.doctor and request.user == appointment.doctor.user)):
+        messages.error(request, "You are not authorized to cancel this appointment.")
+        if is_doctor(request.user):
+            return redirect('doctor_dashboard')
+        else:
+            return redirect('patient_dashboard')
+
+    if request.method == 'POST':
+        if appointment.status in ['pending', 'confirmed']:
+            appointment.status = 'cancelled'
+            appointment.save()
+            
+            # If a slot was booked, make it available again
+            if appointment.appointment_slot:
+                appointment.appointment_slot.is_available = True
+                appointment.appointment_slot.save()
+            
+            messages.success(request, "Appointment has been cancelled.")
+        else:
+            messages.warning(request, "This appointment cannot be cancelled.")
+    
+    if is_doctor(request.user):
+        return redirect('doctor_dashboard')
+    else:
+        return redirect('patient_dashboard')
+
+
+@login_required
+@user_passes_test(is_doctor)
 def doctor_dashboard(request):
-    try:
-        doctor = request.user.doctor_login_profile
-        if not doctor.is_approved:
-            messages.warning(request, "Your doctor profile is pending approval. Please wait for an administrator to approve it.")
-            return redirect('landing_page')
-    except Doctor.DoesNotExist:
-        messages.error(request, "You are not registered as a doctor, or your profile is incomplete. Please register your clinic.")
-        return redirect('register_clinic')
+    """
+    Renders the dashboard for an approved doctor.
+    """
+    doctor = get_object_or_404(Doctor, user=request.user)
 
     upcoming_appointments = Appointment.objects.filter(
         doctor=doctor,
+        appointment_date__gte=timezone.now().date(),
         status__in=['pending', 'confirmed']
     ).order_by('appointment_date', 'appointment_time')
 
+    past_appointments_query = Q(appointment_date__lt=timezone.now().date()) | Q(appointment_date=timezone.now().date(), appointment_time__lte=timezone.now().time())
     past_appointments = Appointment.objects.filter(
+        past_appointments_query,
         doctor=doctor,
-        status__in=['completed', 'cancelled']
+        status__in=['confirmed', 'completed', 'cancelled']
     ).order_by('-appointment_date', '-appointment_time')
-
-    patient_ids_with_appointments = Appointment.objects.filter(doctor=doctor).values_list('patient__id', flat=True).distinct()
-
+    
+    # Corrected query: Get reports uploaded by this doctor OR reports belonging to patients of this doctor
     doctor_relevant_reports = Report.objects.filter(
-        Q(doctor=doctor) | Q(patient__id__in=patient_ids_with_appointments)
-    ).order_by('-uploaded_at').distinct()
+        Q(doctor=doctor) | Q(patient__appointments__doctor=doctor)
+    ).distinct().order_by('-uploaded_at').prefetch_related('patient', 'doctor')
 
     context = {
         'doctor': doctor,
@@ -95,166 +275,100 @@ def doctor_dashboard(request):
     }
     return render(request, 'doctors/doctor_dashboard.html', context)
 
+
 @login_required
-def book_appointment(request, doctor_id):
-    doctor = get_object_or_404(Doctor, id=doctor_id, is_approved=True)
-
-    try:
-        if request.user.doctor_login_profile:
-            messages.error(request, "Doctors cannot book appointments for themselves using this form.")
-            return redirect('doctor_dashboard')
-    except Doctor.DoesNotExist:
-        pass
-
+@user_passes_test(is_doctor)
+def doctor_profile_edit(request):
+    """
+    Allows a doctor to edit their profile details.
+    """
+    doctor = get_object_or_404(Doctor, user=request.user)
     if request.method == 'POST':
-        form = AppointmentBookingForm(request.POST, doctor=doctor)
+        form = DoctorProfileEditForm(request.POST, instance=doctor)
         if form.is_valid():
-            selected_slot = form.cleaned_data['available_slot']
-
-            if Appointment.objects.filter(
-                appointment_slot=selected_slot,
-                status__in=['pending', 'confirmed']
-            ).exists():
-                messages.error(request, "This slot is no longer available. Please select another time.")
-                form = AppointmentBookingForm(doctor=doctor)
-                context = {'doctor': doctor, 'form': form}
-                return render(request, 'doctors/book_appointment.html', context)
-
-            appointment = form.save(commit=False)
-            appointment.patient = request.user
-            appointment.doctor = doctor
-            appointment.appointment_date = selected_slot.date
-            appointment.appointment_time = selected_slot.start_time
-            appointment.appointment_slot = selected_slot
-            appointment.save()
-
-            selected_slot.is_available = False
-            selected_slot.save()
-
-            messages.success(request, f"Your appointment with Dr. {doctor.full_name} on {appointment.appointment_date} at {appointment.appointment_time} has been requested. It is currently pending confirmation.")
-            return redirect('appointment_success')
-        else:
-            messages.error(request, 'Please correct the errors below.')
+            form.save()
+            messages.success(request, "Your profile has been updated successfully!")
+            return redirect('doctor_dashboard')
     else:
-        form = AppointmentBookingForm(doctor=doctor)
+        form = DoctorProfileEditForm(instance=doctor)
+        
+    context = {
+        'form': form,
+        'doctor': doctor,
+    }
+    return render(request, 'doctors/doctor_profile_edit.html', context)
+
+
+@login_required
+@user_passes_test(is_doctor)
+def doctor_patient_detail(request, patient_id):
+    """
+    Allows a doctor to view a specific patient's details and history with them.
+    """
+    doctor = get_object_or_404(Doctor, user=request.user)
+    patient = get_object_or_404(CustomUser, id=patient_id)
+    
+    if not Appointment.objects.filter(doctor=doctor, patient=patient).exists():
+        messages.error(request, "You are not authorized to view this patient's details.")
+        return redirect('doctor_dashboard')
+    
+    upcoming_appointments = Appointment.objects.filter(
+        doctor=doctor,
+        patient=patient,
+        appointment_date__gte=timezone.now().date(),
+        status__in=['pending', 'confirmed']
+    ).order_by('appointment_date', 'appointment_time')
+
+    past_appointments_query = Q(appointment_date__lt=timezone.now().date()) | Q(appointment_date=timezone.now().date(), appointment_time__lte=timezone.now().time())
+    past_appointments = Appointment.objects.filter(
+        past_appointments_query,
+        doctor=doctor,
+        patient=patient,
+        status__in=['confirmed', 'completed', 'cancelled']
+    ).order_by('-appointment_date', '-appointment_time')
+    
+    reports = Report.objects.filter(patient=patient).order_by('-uploaded_at')
 
     context = {
         'doctor': doctor,
-        'form': form,
+        'patient': patient,
+        'upcoming_appointments': upcoming_appointments,
+        'past_appointments': past_appointments,
+        'reports': reports,
     }
-    return render(request, 'doctors/book_appointment.html', context)
+    return render(request, 'doctors/doctor_patient_detail.html', context)
 
-def appointment_success(request):
-    return render(request, 'doctors/appointment_success.html')
-
-@login_required
-def confirm_appointment(request, appointment_id):
-    if request.method == 'POST':
-        appointment = get_object_or_404(Appointment, id=appointment_id)
-
-        try:
-            current_doctor = request.user.doctor_login_profile
-            if appointment.doctor != current_doctor:
-                messages.error(request, "You are not authorized to confirm this appointment.")
-                return redirect('doctor_dashboard')
-        except Doctor.DoesNotExist:
-            messages.error(request, "You must be a registered doctor to perform this action.")
-            return redirect('doctor_dashboard')
-
-        if appointment.status == 'pending':
-            appointment.status = 'confirmed'
-            appointment.save()
-
-            if appointment.appointment_slot:
-                appointment.appointment_slot.is_available = False
-                appointment.appointment_slot.save()
-            else:
-                messages.warning(request, "Associated time slot not found or already marked unavailable.")
-
-            messages.success(request, f"Appointment with {appointment.patient.username} on {appointment.appointment_date} confirmed.")
-        else:
-            messages.warning(request, "Only pending appointments can be confirmed.")
-        return redirect('doctor_dashboard')
-    else:
-        raise Http404("Only POST requests are allowed for this action.")
-
-@login_required
-def cancel_appointment(request, appointment_id):
-    if request.method == 'POST':
-        appointment = get_object_or_404(Appointment, id=appointment_id)
-        canceller_is_doctor = False
-
-        try:
-            current_doctor_profile = request.user.doctor_login_profile
-            if appointment.doctor == current_doctor_profile:
-                canceller_is_doctor = True
-            else:
-                if appointment.patient != request.user:
-                    messages.error(request, "You are not authorized to cancel this appointment.")
-                    return redirect('patient_dashboard')
-        except Doctor.DoesNotExist:
-            if appointment.patient != request.user:
-                messages.error(request, "You are not authorized to cancel this appointment.")
-                return redirect('patient_dashboard')
-
-        if appointment.status in ['pending', 'confirmed']:
-            appointment.status = 'cancelled'
-            appointment.save()
-            messages.success(request, f"Appointment with {appointment.patient.username} on {appointment.appointment_date} has been cancelled.")
-
-            if appointment.appointment_slot:
-                appointment.appointment_slot.is_available = True
-                appointment.appointment_slot.save()
-            else:
-                messages.warning(request, "Associated time slot not found or already available.")
-
-            redirect_url = 'doctor_dashboard' if canceller_is_doctor else 'patient_dashboard'
-            return redirect(redirect_url)
-        else:
-            messages.warning(request, "This appointment cannot be cancelled as it is already completed or cancelled.")
-        return redirect('doctor_dashboard')
-    else:
-        raise Http404("Only POST requests are allowed for this action.")
 
 @login_required
 def patient_upload_report(request):
-    try:
-        if request.user.doctor_login_profile:
-            messages.error(request, "Doctors upload reports via specific patient/appointment context.")
-            return redirect('doctor_dashboard')
-    except Doctor.DoesNotExist:
-        pass
-
+    """
+    Allows a patient to upload a report for themselves.
+    """
     if request.method == 'POST':
         form = ReportUploadForm(request.POST, request.FILES)
         if form.is_valid():
             report = form.save(commit=False)
             report.patient = request.user
             report.save()
-            messages.success(request, 'Your report has been uploaded successfully!')
+            messages.success(request, "Your report has been uploaded successfully!")
             return redirect('patient_dashboard')
-        else:
-            messages.error(request, 'Please correct the errors below.')
     else:
         form = ReportUploadForm()
 
     context = {
         'form': form,
-        'title': 'Upload Your Medical Report'
+        'title': 'Upload Your Medical Report',
     }
     return render(request, 'doctors/report_upload_form.html', context)
 
-@login_required
-def doctor_upload_report(request, patient_id):
-    try:
-        current_doctor = request.user.doctor_login_profile
-        if not current_doctor.is_approved:
-            messages.error(request, "Your doctor profile is not approved.")
-            return redirect('doctor_dashboard')
-    except Doctor.DoesNotExist:
-        messages.error(request, "You must be a registered and approved doctor to perform this action.")
-        return redirect('doctor_dashboard')
 
+@login_required
+@user_passes_test(is_doctor)
+def doctor_upload_report(request, patient_id):
+    """
+    Allows a doctor to upload a report for a specific patient.
+    """
+    doctor = get_object_or_404(Doctor, user=request.user)
     patient = get_object_or_404(CustomUser, id=patient_id)
 
     if request.method == 'POST':
@@ -262,192 +376,170 @@ def doctor_upload_report(request, patient_id):
         if form.is_valid():
             report = form.save(commit=False)
             report.patient = patient
-            report.doctor = current_doctor
+            report.doctor = doctor
             report.save()
-            messages.success(request, f'Report for {patient.username} uploaded successfully by Dr. {current_doctor.full_name}!')
-            return redirect('doctor_dashboard')
-        else:
-            messages.error(request, 'Please correct the errors below.')
+            messages.success(request, f"Report for {patient.username} has been uploaded successfully!")
+            return redirect('doctor_patient_detail', patient_id=patient.id)
     else:
         form = ReportUploadForm()
 
     context = {
         'form': form,
+        'doctor': doctor,
         'patient': patient,
-        'title': f'Upload Report for {patient.username}'
+        'title': 'Upload Report for Patient',
     }
     return render(request, 'doctors/report_upload_form.html', context)
 
-@login_required
-def doctor_profile_edit(request):
-    try:
-        doctor = request.user.doctor_login_profile
-        if not doctor.is_approved:
-            messages.warning(request, "Your doctor profile is pending approval. You cannot edit it until approved.")
-            return redirect('doctor_dashboard')
-    except Doctor.DoesNotExist:
-        messages.error(request, "You are not registered as a doctor.")
-        return redirect('register_clinic')
-
-    if request.method == 'POST':
-        form = DoctorProfileEditForm(request.POST, instance=doctor)
-        if form.is_valid():
-            doctor_instance = form.save(commit=False)
-            doctor_instance.save()
-            form.save_m2m()
-            messages.success(request, 'Your profile has been updated successfully!')
-            return redirect('doctor_dashboard')
-        else:
-            messages.error(request, 'Please correct the errors below.')
-    else:
-        form = DoctorProfileEditForm(instance=doctor)
-
-    context = {
-        'form': form,
-        'doctor': doctor,
-    }
-    return render(request, 'doctors/doctor_profile_edit.html', context)
 
 @login_required
+@user_passes_test(is_doctor)
 def doctor_slot_management(request):
-    try:
-        doctor = request.user.doctor_login_profile
-        if not doctor.is_approved:
-            messages.warning(request, "Your doctor profile is pending approval. You cannot manage slots until approved.")
-            return redirect('doctor_dashboard')
-    except Doctor.DoesNotExist:
-        messages.error(request, "You are not registered as a doctor.")
-        return redirect('register_clinic')
-
+    """
+    Allows a doctor to manually add a single time slot.
+    """
+    doctor = get_object_or_404(Doctor, user=request.user)
+    
     if request.method == 'POST':
         form = DoctorSlotForm(request.POST)
         if form.is_valid():
             slot = form.save(commit=False)
             slot.doctor = doctor
-            try:
-                slot.save()
-                messages.success(request, f"New slot created: {slot.date} {slot.start_time}-{slot.end_time}.")
-                return redirect('doctor_slot_management')
-            except Exception as e:
-                messages.error(request, f"Error creating slot: {e}. (Perhaps an overlapping slot already exists?)")
-        else:
-            messages.error(request, 'Please correct the errors below.')
+            slot.is_available = True
+            slot.save()
+            messages.success(request, "Time slot added successfully!")
+            return redirect('doctor_slot_management')
     else:
         form = DoctorSlotForm()
 
-    existing_slots = DoctorSlot.objects.filter(doctor=doctor).order_by('date', 'start_time')
+    existing_slots = DoctorSlot.objects.filter(
+        doctor=doctor,
+        date__gte=timezone.now().date()
+    ).order_by('date', 'start_time')
 
     context = {
         'form': form,
-        'existing_slots': existing_slots,
         'doctor': doctor,
+        'existing_slots': existing_slots,
     }
     return render(request, 'doctors/doctor_slot_management.html', context)
 
-@login_required
-def toggle_slot_availability(request, slot_id):
-    if request.method == 'POST':
-        try:
-            slot = get_object_or_404(DoctorSlot, id=slot_id)
-            
-            try:
-                current_doctor = request.user.doctor_login_profile
-                if slot.doctor != current_doctor:
-                    messages.error(request, "You are not authorized to modify this slot.")
-                    return redirect('doctor_slot_management')
-            except Doctor.DoesNotExist:
-                messages.error(request, "You must be a registered doctor to perform this action.")
-                return redirect('doctor_dashboard')
-            
-            if Appointment.objects.filter(
-                appointment_slot=slot,
-                status__in=['pending', 'confirmed']
-            ).exists():
-                messages.error(request, "Cannot block a slot that already has a booked appointment.")
-                return redirect('doctor_slot_management')
-            
-            slot.is_available = not slot.is_available
-            slot.save()
-            
-            status = "unblocked" if slot.is_available else "blocked"
-            messages.success(request, f"Slot on {slot.date} at {slot.start_time} has been {status}.")
-            
-        except Exception as e:
-            messages.error(request, f'An error occurred: {e}')
-    
-    return redirect('doctor_slot_management')
 
 @login_required
+@user_passes_test(is_doctor)
+def doctor_generate_slots(request):
+    """
+    Allows a doctor to automatically generate time slots based on a schedule.
+    """
+    doctor = get_object_or_404(Doctor, user=request.user)
+
+    if request.method == 'POST':
+        form = DoctorScheduleForm(request.POST)
+        if form.is_valid():
+            working_days = form.cleaned_data['working_days']
+            start_time = form.cleaned_data['start_time']
+            end_time = form.cleaned_data['end_time']
+            slot_duration = int(form.cleaned_data['slot_duration'])
+            generate_for_weeks = form.cleaned_data['generate_for_weeks']
+            
+            doctor.working_days = ','.join(working_days)
+            doctor.start_time = start_time
+            doctor.end_time = end_time
+            doctor.save()
+            
+            today = timezone.now().date()
+            end_date = today + timedelta(weeks=generate_for_weeks)
+            
+            day_names = {name: i for i, name in enumerate(calendar.day_name)}
+            
+            current_date = today + timedelta(days=1)
+            
+            while current_date <= end_date:
+                if calendar.day_name[current_date.weekday()] in working_days:
+                    
+                    current_time = datetime.combine(current_date, start_time)
+                    end_time_dt = datetime.combine(current_date, end_time)
+                    
+                    while current_time.time() < end_time_dt.time():
+                        slot_end_time = (current_time + timedelta(minutes=slot_duration)).time()
+                        
+                        DoctorSlot.objects.get_or_create(
+                            doctor=doctor,
+                            date=current_date,
+                            start_time=current_time.time(),
+                            end_time=slot_end_time,
+                        )
+                        current_time += timedelta(minutes=slot_duration)
+                        
+                current_date += timedelta(days=1)
+            
+            messages.success(request, f"{DoctorSlot.objects.filter(doctor=doctor, date__gte=today).count()} slots generated successfully!")
+            return redirect('doctor_slot_management')
+    else:
+        form = DoctorScheduleForm(initial={
+            'working_days': doctor.working_days.split(',') if doctor.working_days else [],
+            'start_time': doctor.start_time,
+            'end_time': doctor.end_time,
+        })
+    
+    context = {
+        'form': form,
+        'doctor': doctor,
+    }
+    return render(request, 'doctors/doctor_generate_slots.html', context)
+
+
+@login_required
+@user_passes_test(is_doctor)
 def doctor_add_patient(request):
-    try:
-        doctor = request.user.doctor_login_profile
-        if not doctor.is_approved:
-            messages.warning(request, "Your doctor profile is pending approval. You cannot add patients until approved.")
-            return redirect('doctor_dashboard')
-    except Doctor.DoesNotExist:
-        messages.error(request, "You are not registered as a doctor.")
-        return redirect('register_clinic')
+    """
+    Allows a doctor to create a new patient account and book a confirmed appointment.
+    """
+    doctor = get_object_or_404(Doctor, user=request.user)
 
     if request.method == 'POST':
         form = DoctorAddPatientForm(request.POST, doctor=doctor)
         if form.is_valid():
-            try:
-                cleaned_data = form.cleaned_data
-                
-                patient_user = CustomUser.objects.create_user(
-                    username=cleaned_data['patient_username'],
-                    email=cleaned_data['patient_email'],
-                    first_name=cleaned_data['patient_first_name'],
-                    last_name=cleaned_data['patient_last_name'],
-                    password='temp_password_123',
-                    is_active=True
-                )
-                
-                if hasattr(patient_user, 'phone'):
-                    patient_user.phone = cleaned_data['patient_phone']
-                    patient_user.save()
-                
-                selected_slot = cleaned_data['available_slot']
-                
-                if Appointment.objects.filter(
-                    appointment_slot=selected_slot,
-                    status__in=['pending', 'confirmed']
-                ).exists():
-                    patient_user.delete()
-                    messages.error(request, "This slot is no longer available. Please select another time.")
-                    form = DoctorAddPatientForm(doctor=doctor)
-                    context = {'form': form, 'doctor': doctor}
-                    return render(request, 'doctors/doctor_add_patient.html', context)
-                
-                appointment = Appointment.objects.create(
-                    patient=patient_user,
-                    doctor=doctor,
-                    appointment_date=selected_slot.date,
-                    appointment_time=selected_slot.start_time,
-                    appointment_slot=selected_slot,
-                    reason=cleaned_data.get('reason', ''),
-                    appointment_type=cleaned_data.get('appointment_type', 'unpaid'),
-                    status='confirmed'
-                )
-                
-                selected_slot.is_available = False
-                selected_slot.save()
-                
-                messages.success(
-                    request, 
-                    f"Patient {patient_user.get_full_name()} has been added successfully! "
-                    f"Appointment booked for {appointment.appointment_date} at {appointment.appointment_time}. "
-                    f"Patient username: {patient_user.username}, temporary password: temp_password_123"
-                )
-                
-                return redirect('doctor_dashboard')
-                
-            except Exception as e:
-                messages.error(request, f'An error occurred while adding the patient: {e}')
-                if 'patient_user' in locals():
-                    patient_user.delete()
-        else:
-            messages.error(request, 'Please correct the errors below.')
+            patient_username = form.cleaned_data['patient_username']
+            patient_email = form.cleaned_data['patient_email']
+            patient_first_name = form.cleaned_data['patient_first_name']
+            patient_last_name = form.cleaned_data['patient_last_name']
+            patient_phone = form.cleaned_data['patient_phone']
+
+            temp_password = CustomUser.objects.make_random_password()
+            
+            patient_user = CustomUser.objects.create_user(
+                username=patient_username,
+                password=temp_password,
+                email=patient_email,
+                first_name=patient_first_name,
+                last_name=patient_last_name,
+                phone_number=patient_phone
+            )
+            patient_user.save()
+
+            slot = form.cleaned_data['available_slot']
+            reason = form.cleaned_data['reason']
+            appointment_type = form.cleaned_data['appointment_type']
+
+            appointment = Appointment.objects.create(
+                patient=patient_user,
+                doctor=doctor,
+                appointment_slot=slot,
+                reason=reason,
+                appointment_type=appointment_type,
+                status='confirmed',
+                appointment_date=slot.date,
+                appointment_time=slot.start_time,
+            )
+
+            slot.is_available = False
+            slot.save()
+
+            messages.success(request, f"Patient {patient_username} has been added and appointment booked successfully!")
+            messages.info(request, f"Temporary Password for {patient_username} is: {temp_password}. Please share it with them securely.")
+
+            return redirect('doctor_dashboard')
     else:
         form = DoctorAddPatientForm(doctor=doctor)
 
@@ -457,146 +549,26 @@ def doctor_add_patient(request):
     }
     return render(request, 'doctors/doctor_add_patient.html', context)
 
+
 @login_required
-def doctor_generate_slots(request):
-    try:
-        doctor = request.user.doctor_login_profile
-        if not doctor.is_approved:
-            messages.warning(request, "Your doctor profile is pending approval. You cannot generate slots until approved.")
-            return redirect('doctor_dashboard')
-    except Doctor.DoesNotExist:
-        messages.error(request, "You are not registered as a doctor.")
-        return redirect('register_clinic')
+@user_passes_test(is_doctor)
+def toggle_slot_availability(request, slot_id):
+    """
+    Allows a doctor to toggle the availability of a specific slot.
+    """
+    slot = get_object_or_404(DoctorSlot, id=slot_id)
+    
+    if request.user != slot.doctor.user:
+        messages.error(request, "You are not authorized to modify this slot.")
+        return redirect('doctor_slot_management')
 
     if request.method == 'POST':
-        form = DoctorScheduleForm(request.POST)
-        if form.is_valid():
-            try:
-                working_days = form.cleaned_data['working_days']
-                start_time = form.cleaned_data['start_time']
-                end_time = form.cleaned_data['end_time']
-                slot_duration = form.cleaned_data['slot_duration']
-                generate_for_weeks = form.cleaned_data['generate_for_weeks']
-                
-                doctor.working_days = working_days
-                doctor.start_time = start_time
-                doctor.end_time = end_time
-                doctor.save()
-                
-                slots_created = generate_doctor_slots(doctor, slot_duration, generate_for_weeks)
-                
-                messages.success(
-                    request, 
-                    f"Working schedule updated and {slots_created} time slots generated successfully! "
-                    f"Slots created for {generate_for_weeks} weeks ahead."
-                )
-                
-                return redirect('doctor_slot_management')
-                
-            except Exception as e:
-                messages.error(request, f'An error occurred while generating slots: {e}')
+        if slot.is_available:
+            slot.is_available = False
+            messages.info(request, f"Slot on {slot.date} at {slot.start_time.strftime('%I:%M %p')} has been blocked.")
         else:
-            messages.error(request, 'Please correct the errors below.')
-    else:
-        initial_data = {}
-        if doctor.working_days:
-            initial_data['working_days'] = doctor.working_days
-        if doctor.start_time:
-            initial_data['start_time'] = doctor.start_time
-        if doctor.end_time:
-            initial_data['end_time'] = doctor.end_time
-        
-        form = DoctorScheduleForm(initial=initial_data)
-
-    context = {
-        'form': form,
-        'doctor': doctor,
-    }
-    return render(request, 'doctors/doctor_generate_slots.html', context)
-
-def generate_doctor_slots(doctor, slot_duration, weeks_ahead):
-    from datetime import timedelta
+            slot.is_available = True
+            messages.success(request, f"Slot on {slot.date} at {slot.start_time.strftime('%I:%M %p')} has been unblocked.")
+        slot.save()
     
-    slots_created = 0
-    today = datetime.date.today()
-    
-    working_days = parse_working_days(doctor.working_days)
-    
-    slot_minutes = int(slot_duration)
-    
-    for week in range(weeks_ahead):
-        for day_offset in range(7):
-            current_date = today + timedelta(days=week * 7 + day_offset)
-            
-            if current_date.weekday() in working_days:
-                day_slots = generate_slots_for_day(
-                    doctor, current_date, doctor.start_time, 
-                    doctor.end_time, slot_minutes
-                )
-                slots_created += day_slots
-    
-    return slots_created
-
-def parse_working_days(working_days_str):
-    working_days = []
-    
-    if working_days_str == 'Mon-Fri':
-        working_days = [0, 1, 2, 3, 4]
-    elif working_days_str == 'Mon-Sat':
-        working_days = [0, 1, 2, 3, 4, 5]
-    elif working_days_str == 'Mon-Sun':
-        working_days = [0, 1, 2, 3, 4, 5, 6]
-    elif working_days_str == 'Mon,Wed,Fri':
-        working_days = [0, 2, 4]
-    elif working_days_str == 'Tue,Thu,Sat':
-        working_days = [1, 3, 5]
-    elif working_days_str == 'Mon,Tue,Wed':
-        working_days = [0, 1, 2]
-    elif working_days_str == 'Thu,Fri,Sat':
-        working_days = [3, 4, 5]
-    elif working_days_str == 'Mon,Tue,Wed,Thu,Fri':
-        working_days = [0, 1, 2, 3, 4]
-    elif working_days_str == 'Mon,Tue,Wed,Thu,Fri,Sat':
-        working_days = [0, 1, 2, 3, 4, 5]
-    elif working_days_str == 'Mon,Tue,Wed,Thu,Fri,Sat,Sun':
-        working_days = [0, 1, 2, 3, 4, 5, 6]
-    
-    return working_days
-
-def generate_slots_for_day(doctor, date, start_time, end_time, slot_minutes):
-    slots_created = 0
-    
-    start_minutes = start_time.hour * 60 + start_time.minute
-    end_minutes = end_time.hour * 60 + end_time.minute
-    
-    current_minutes = start_minutes
-    while current_minutes + slot_minutes <= end_minutes:
-        slot_start_hour = current_minutes // 60
-        slot_start_minute = current_minutes % 60
-        slot_start_time = datetime.time(slot_start_hour, slot_start_minute)
-        
-        slot_end_minutes = current_minutes + slot_minutes
-        slot_end_hour = slot_end_minutes // 60
-        slot_end_minute = slot_end_minutes % 60
-        slot_end_time = datetime.time(slot_end_hour, slot_end_minute)
-        
-        if not DoctorSlot.objects.filter(
-            doctor=doctor,
-            date=date,
-            start_time=slot_start_time,
-            end_time=slot_end_time
-        ).exists():
-            DoctorSlot.objects.create(
-                doctor=doctor,
-                date=date,
-                start_time=slot_start_time,
-                end_time=slot_end_time,
-                is_available=True
-            )
-            slots_created += 1
-        
-        current_minutes += slot_minutes
-    
-    return slots_created
-
-
+    return redirect('doctor_slot_management')

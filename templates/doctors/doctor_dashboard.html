@@ -87,6 +87,13 @@
     .appointment-item.confirmed { background-color: #d4edda; border-color: #c3e6cb; } /* Green for confirmed */
     .appointment-item.completed { background-color: #e2e3e5; border-color: #d6d8db; } /* Gray for completed */
     .appointment-item.cancelled { background-color: #f8d7da; border-color: #f5c6cb; } /* Red for cancelled */
+    
+    /* NEW: Styling for the link wrapping the list item */
+    .appointment-link {
+        text-decoration: none;
+        color: inherit;
+        display: block; /* Make the anchor fill the entire list item area */
+    }
 
     .appointment-details strong {
         color: #1a4a6e;
@@ -277,35 +284,33 @@
                     {% if upcoming_appointments %}
                         <ul class="appointments-list">
                             {% for appointment in upcoming_appointments %}
-                                <li class="appointment-item {{ appointment.status }}">
-                                    <div class="appointment-details">
-                                        <p><strong>Patient:</strong> {{ appointment.patient.username }}</p>
-                                        <p><strong>Date:</strong> {{ appointment.appointment_date|date:"F d, Y" }}</p>
-                                        <p><strong>Time:</strong> {{ appointment.appointment_time|time:"h:i A" }}</p>
-                                        <p><strong>Status:</strong> {{ appointment.get_status_display }}</p>
-                                        <p><strong>Type:</strong> {{ appointment.get_appointment_type_display }}</p>
-                                        {% if appointment.reason %}<p><strong>Reason:</strong> {{ appointment.reason }}</p>{% endif %}
-                                    </div>
-                                    {# Inside an appointment-item loop for upcoming_appointments #}
-<div class="appointment-actions">
-    {% if appointment.status == 'pending' %}
-        <form action="{% url 'confirm_appointment' appointment.id %}" method="post" style="display: inline-block;">
-            {% csrf_token %}
-            <button type="submit" class="btn-primary">Confirm</button>
-        </form>
-    {% endif %}
-    {% if appointment.status == 'pending' or appointment.status == 'confirmed' %}
-        <form action="{% url 'cancel_appointment' appointment.id %}" method="post" style="display: inline-block;">
-            {% csrf_token %}
-            <button type="submit" class="btn-danger">Cancel</button>
-        </form>
-        {# <--- ADD THIS CHAT BUTTON #}
-        <a href="{% url 'chat_room' appointment.id %}" class="btn-primary" style="padding: 8px 15px; font-size: 0.9em; margin-left: 5px;">Chat</a>
-    {% endif %}
-    <!-- Add upload report button for doctor -->
-    <a href="{% url 'doctor_upload_report' appointment.patient.id %}" class="btn-success">Upload Report</a>
-</div>
-                                </li>
+                                <a href="{% url 'doctor_patient_detail' appointment.patient.id %}" class="appointment-link">
+                                    <li class="appointment-item {{ appointment.status }}">
+                                        <div class="appointment-details">
+                                            <p><strong>Patient:</strong> {{ appointment.patient.username }}</p>
+                                            <p><strong>Date:</strong> {{ appointment.appointment_date|date:"F d, Y" }}</p>
+                                            <p><strong>Time:</strong> {{ appointment.appointment_time|time:"h:i A" }}</p>
+                                            <p><strong>Status:</strong> {{ appointment.get_status_display }}</p>
+                                            <p><strong>Type:</strong> {{ appointment.get_appointment_type_display }}</p>
+                                            {% if appointment.reason %}<p><strong>Reason:</strong> {{ appointment.reason }}</p>{% endif %}
+                                        </div>
+                                        <div class="appointment-actions">
+                                            {% if appointment.status == 'pending' %}
+                                                <form action="{% url 'confirm_appointment' appointment.id %}" method="post" style="display: inline-block;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn-primary">Confirm</button>
+                                                </form>
+                                            {% endif %}
+                                            {% if appointment.status == 'pending' or appointment.status == 'confirmed' %}
+                                                <form action="{% url 'cancel_appointment' appointment.id %}" method="post" style="display: inline-block;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn-danger">Cancel</button>
+                                                </form>
+                                                <a href="{% url 'chat_room' appointment.id %}" class="btn-primary" style="padding: 8px 15px; font-size: 0.9em; margin-left: 5px;">Chat</a>
+                                            {% endif %}
+                                            </div>
+                                    </li>
+                                </a>
                             {% endfor %}
                         </ul>
                     {% else %}
@@ -316,16 +321,18 @@
                     {% if past_appointments %}
                         <ul class="appointments-list">
                             {% for appointment in past_appointments %}
-                                <li class="appointment-item {{ appointment.status }}">
-                                    <div class="appointment-details">
-                                        <p><strong>Patient:</strong> {{ appointment.patient.username }}</p>
-                                        <p><strong>Date:</strong> {{ appointment.appointment_date|date:"F d, Y" }}</p>
-                                        <p><strong>Time:</strong> {{ appointment.appointment_time|time:"h:i A" }}</p>
-                                        <p><strong>Status:</strong> {{ appointment.get_status_display }}</p>
-                                        <p><strong>Type:</strong> {{ appointment.get_appointment_type_display }}</p>
-                                        {% if appointment.reason %}<p><strong>Reason:</strong> {{ appointment.reason }}</p>{% endif %}
-                                    </div>
-                                </li>
+                                <a href="{% url 'doctor_patient_detail' appointment.patient.id %}" class="appointment-link">
+                                    <li class="appointment-item {{ appointment.status }}">
+                                        <div class="appointment-details">
+                                            <p><strong>Patient:</strong> {{ appointment.patient.username }}</p>
+                                            <p><strong>Date:</strong> {{ appointment.appointment_date|date:"F d, Y" }}</p>
+                                            <p><strong>Time:</strong> {{ appointment.appointment_time|time:"h:i A" }}</p>
+                                            <p><strong>Status:</strong> {{ appointment.get_status_display }}</p>
+                                            <p><strong>Type:</strong> {{ appointment.get_appointment_type_display }}</p>
+                                            {% if appointment.reason %}<p><strong>Reason:</strong> {{ appointment.reason }}</p>{% endif %}
+                                        </div>
+                                    </li>
+                                </a>
                             {% endfor %}
                         </ul>
                     {% else %}

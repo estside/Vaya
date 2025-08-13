@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - Dr. {{ doctor.full_name }} - Vaya{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Main Content - Form Section */
+    .booking-section {
+        flex-grow: 1;
+        padding: 60px 0;
+        background-color: #e6f6f2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .booking-card {
+        background-color: #fff;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        width: 100%;
+        max-width: 550px;
+        text-align: center;
+    }
+    .booking-card h2 {
+        font-size: 2.2em;
+        margin-bottom: 30px;
+    }
+    .booking-card p.patient-info {
+        font-size: 1.2em;
+        font-weight: 600;
+        color: #1a4a6e;
+        margin-bottom: 10px;
+    }
+    .form-group .radio-list {
+        list-style: none;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-top: 10px;
+    }
+    .form-group .radio-list li {
+        display: flex;
+        align-items: center;
+    }
+    .form-group .radio-list input[type="radio"] {
+        margin-right: 8px;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .booking-section {
+            padding: 40px 0;
+        }
+        .booking-card {
+            padding: 25px;
+            margin: 0 15px;
+        }
+        .form-group .radio-list {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <section class="booking-section">
+        <div class="container">
+            <div class="booking-card">
+                <h2>Book Follow-up Appointment</h2>
+                <p class="patient-info">For Patient: {{ patient.username }}</p>
+                <p>You are booking a follow-up meeting with Dr. {{ doctor.full_name }}.</p>
+                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="form-group">
+                        <label for="{{ form.available_slot.id_for_label }}">Select an Available Slot <span style="color: red;">*</span></label>
+                        {{ form.available_slot }}
+                        {% if form.available_slot.errors %}<small class="errorlist">{{ form.available_slot.errors }}</small>{% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label>Payment Status</label>
+                        <div class="radio-list">
+                            {% for radio in form.payment_status %}
+                                <div>
+                                    {{ radio.tag }}
+                                    <label for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% if form.payment_status.errors %}<small class="errorlist">{{ form.payment_status.errors }}</small>{% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.comments.id_for_label }}">Add Comments</label>
+                        {{ form.comments }}
+                        {% if form.comments.errors %}<small class="errorlist">{{ form.comments.errors }}</small>{% endif %}
+                        <small class="help-text">Internal comments about the appointment, visible only to the doctor.</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.reason.id_for_label }}">Reason for Follow-up</label>
+                        {{ form.reason }}
+                        {% if form.reason.errors %}<small class="errorlist">{{ form.reason.errors }}</small>{% endif %}
+                    </div>
+
+                    <button type="submit" class="btn-primary">Book Follow-up</button>
+                </form>
+            </div>
+        </div>
+    </section>
+{% endblock %}
