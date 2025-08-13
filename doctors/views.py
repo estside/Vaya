@@ -346,14 +346,10 @@ def doctor_slot_management(request):
 
 @login_required
 def toggle_slot_availability(request, slot_id):
-    """
-    Allows a doctor to toggle a slot's availability (block/unblock).
-    """
     if request.method == 'POST':
         try:
             slot = get_object_or_404(DoctorSlot, id=slot_id)
             
-            # Security check: Ensure the logged-in user is the doctor who owns this slot
             try:
                 current_doctor = request.user.doctor_login_profile
                 if slot.doctor != current_doctor:
@@ -363,7 +359,6 @@ def toggle_slot_availability(request, slot_id):
                 messages.error(request, "You must be a registered doctor to perform this action.")
                 return redirect('doctor_dashboard')
             
-            # Check if slot is already booked
             if Appointment.objects.filter(
                 appointment_slot=slot,
                 status__in=['pending', 'confirmed']
@@ -371,7 +366,6 @@ def toggle_slot_availability(request, slot_id):
                 messages.error(request, "Cannot block a slot that already has a booked appointment.")
                 return redirect('doctor_slot_management')
             
-            # Toggle availability
             slot.is_available = not slot.is_available
             slot.save()
             
@@ -385,9 +379,6 @@ def toggle_slot_availability(request, slot_id):
 
 @login_required
 def doctor_add_patient(request):
-    """
-    Allows a logged-in doctor to add patients online and book appointments for them.
-    """
     try:
         doctor = request.user.doctor_login_profile
         if not doctor.is_approved:
@@ -401,40 +392,33 @@ def doctor_add_patient(request):
         form = DoctorAddPatientForm(request.POST, doctor=doctor)
         if form.is_valid():
             try:
-                # Get the cleaned data from the form
                 cleaned_data = form.cleaned_data
                 
-                # Create the patient user account
                 patient_user = CustomUser.objects.create_user(
                     username=cleaned_data['patient_username'],
                     email=cleaned_data['patient_email'],
                     first_name=cleaned_data['patient_first_name'],
                     last_name=cleaned_data['patient_last_name'],
-                    password='temp_password_123',  # Temporary password - patient should change this
-                    is_active=True  # Patient account is active immediately
+                    password='temp_password_123',
+                    is_active=True
                 )
                 
-                # Set phone number if the field exists
                 if hasattr(patient_user, 'phone'):
                     patient_user.phone = cleaned_data['patient_phone']
                     patient_user.save()
                 
-                # Get the selected slot
                 selected_slot = cleaned_data['available_slot']
                 
-                # Check if this slot is still available
                 if Appointment.objects.filter(
                     appointment_slot=selected_slot,
                     status__in=['pending', 'confirmed']
                 ).exists():
-                    # Slot is no longer available, delete the created user and show error
                     patient_user.delete()
                     messages.error(request, "This slot is no longer available. Please select another time.")
                     form = DoctorAddPatientForm(doctor=doctor)
                     context = {'form': form, 'doctor': doctor}
                     return render(request, 'doctors/doctor_add_patient.html', context)
                 
-                # Create the appointment
                 appointment = Appointment.objects.create(
                     patient=patient_user,
                     doctor=doctor,
@@ -443,10 +427,9 @@ def doctor_add_patient(request):
                     appointment_slot=selected_slot,
                     reason=cleaned_data.get('reason', ''),
                     appointment_type=cleaned_data.get('appointment_type', 'unpaid'),
-                    status='confirmed'  # Auto-confirm since doctor is booking it
+                    status='confirmed'
                 )
                 
-                # Mark the selected slot as unavailable
                 selected_slot.is_available = False
                 selected_slot.save()
                 
@@ -457,12 +440,10 @@ def doctor_add_patient(request):
                     f"Patient username: {patient_user.username}, temporary password: temp_password_123"
                 )
                 
-                # Redirect to doctor dashboard
                 return redirect('doctor_dashboard')
                 
             except Exception as e:
                 messages.error(request, f'An error occurred while adding the patient: {e}')
-                # If there was an error, try to clean up the created user
                 if 'patient_user' in locals():
                     patient_user.delete()
         else:
@@ -478,14 +459,11 @@ def doctor_add_patient(request):
 
 @login_required
 def doctor_generate_slots(request):
-    """
-    Allows a logged-in doctor to automatically generate time slots based on their working schedule.
-    """
     try:
         doctor = request.user.doctor_login_profile
         if not doctor.is_approved:
             messages.warning(request, "Your doctor profile is pending approval. You cannot generate slots until approved.")
-        return redirect('doctor_dashboard')
+            return redirect('doctor_dashboard')
     except Doctor.DoesNotExist:
         messages.error(request, "You are not registered as a doctor.")
         return redirect('register_clinic')
@@ -494,20 +472,17 @@ def doctor_generate_slots(request):
         form = DoctorScheduleForm(request.POST)
         if form.is_valid():
             try:
-                # Get the cleaned data
                 working_days = form.cleaned_data['working_days']
                 start_time = form.cleaned_data['start_time']
                 end_time = form.cleaned_data['end_time']
                 slot_duration = form.cleaned_data['slot_duration']
                 generate_for_weeks = form.cleaned_data['generate_for_weeks']
                 
-                # Update doctor's working schedule
                 doctor.working_days = working_days
                 doctor.start_time = start_time
                 doctor.end_time = end_time
                 doctor.save()
                 
-                # Generate slots for the specified number of weeks
                 slots_created = generate_doctor_slots(doctor, slot_duration, generate_for_weeks)
                 
                 messages.success(
@@ -523,7 +498,6 @@ def doctor_generate_slots(request):
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
-        # Pre-populate form with existing doctor schedule if available
         initial_data = {}
         if doctor.working_days:
             initial_data['working_days'] = doctor.working_days
@@ -541,28 +515,20 @@ def doctor_generate_slots(request):
     return render(request, 'doctors/doctor_generate_slots.html', context)
 
 def generate_doctor_slots(doctor, slot_duration, weeks_ahead):
-    """
-    Helper function to generate time slots for a doctor based on their working schedule.
-    """
     from datetime import timedelta
     
     slots_created = 0
     today = datetime.date.today()
     
-    # Parse working days
     working_days = parse_working_days(doctor.working_days)
     
-    # Calculate slot duration in minutes
     slot_minutes = int(slot_duration)
     
-    # Generate slots for each day in the specified weeks
     for week in range(weeks_ahead):
         for day_offset in range(7):
             current_date = today + timedelta(days=week * 7 + day_offset)
             
-            # Check if this day is a working day
             if current_date.weekday() in working_days:
-                # Generate slots for this working day
                 day_slots = generate_slots_for_day(
                     doctor, current_date, doctor.start_time, 
                     doctor.end_time, slot_minutes
@@ -572,48 +538,39 @@ def generate_doctor_slots(doctor, slot_duration, weeks_ahead):
     return slots_created
 
 def parse_working_days(working_days_str):
-    """
-    Parse working days string and return list of weekday numbers (0=Monday, 6=Sunday).
-    """
     working_days = []
     
     if working_days_str == 'Mon-Fri':
-        working_days = [0, 1, 2, 3, 4]  # Monday to Friday
+        working_days = [0, 1, 2, 3, 4]
     elif working_days_str == 'Mon-Sat':
-        working_days = [0, 1, 2, 3, 4, 5]  # Monday to Saturday
+        working_days = [0, 1, 2, 3, 4, 5]
     elif working_days_str == 'Mon-Sun':
-        working_days = [0, 1, 2, 3, 4, 5, 6]  # Monday to Sunday
+        working_days = [0, 1, 2, 3, 4, 5, 6]
     elif working_days_str == 'Mon,Wed,Fri':
-        working_days = [0, 2, 4]  # Monday, Wednesday, Friday
+        working_days = [0, 2, 4]
     elif working_days_str == 'Tue,Thu,Sat':
-        working_days = [1, 3, 5]  # Tuesday, Thursday, Saturday
+        working_days = [1, 3, 5]
     elif working_days_str == 'Mon,Tue,Wed':
-        working_days = [0, 1, 2]  # Monday, Tuesday, Wednesday
+        working_days = [0, 1, 2]
     elif working_days_str == 'Thu,Fri,Sat':
-        working_days = [3, 4, 5]  # Thursday, Friday, Saturday
+        working_days = [3, 4, 5]
     elif working_days_str == 'Mon,Tue,Wed,Thu,Fri':
-        working_days = [0, 1, 2, 3, 4]  # Monday to Friday
+        working_days = [0, 1, 2, 3, 4]
     elif working_days_str == 'Mon,Tue,Wed,Thu,Fri,Sat':
-        working_days = [0, 1, 2, 3, 4, 5]  # Monday to Saturday
+        working_days = [0, 1, 2, 3, 4, 5]
     elif working_days_str == 'Mon,Tue,Wed,Thu,Fri,Sat,Sun':
-        working_days = [0, 1, 2, 3, 4, 5, 6]  # Every Day
+        working_days = [0, 1, 2, 3, 4, 5, 6]
     
     return working_days
 
 def generate_slots_for_day(doctor, date, start_time, end_time, slot_minutes):
-    """
-    Generate time slots for a specific day.
-    """
     slots_created = 0
     
-    # Convert times to minutes for easier calculation
     start_minutes = start_time.hour * 60 + start_time.minute
     end_minutes = end_time.hour * 60 + end_time.minute
     
-    # Generate slots
     current_minutes = start_minutes
     while current_minutes + slot_minutes <= end_minutes:
-        # Calculate slot start and end times
         slot_start_hour = current_minutes // 60
         slot_start_minute = current_minutes % 60
         slot_start_time = datetime.time(slot_start_hour, slot_start_minute)
@@ -623,14 +580,12 @@ def generate_slots_for_day(doctor, date, start_time, end_time, slot_minutes):
         slot_end_minute = slot_end_minutes % 60
         slot_end_time = datetime.time(slot_end_hour, slot_end_minute)
         
-        # Check if slot already exists
         if not DoctorSlot.objects.filter(
             doctor=doctor,
             date=date,
             start_time=slot_start_time,
             end_time=slot_end_time
         ).exists():
-            # Create new slot
             DoctorSlot.objects.create(
                 doctor=doctor,
                 date=date,
@@ -640,7 +595,8 @@ def generate_slots_for_day(doctor, date, start_time, end_time, slot_minutes):
             )
             slots_created += 1
         
-        # Move to next slot
         current_minutes += slot_minutes
     
     return slots_created
+
+
